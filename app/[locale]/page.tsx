@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getTranslations, getLocale } from 'next-intl/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import type { Course, Announcement, PricingPlan, Locale } from '@/lib/types';
