@@ -27,11 +27,13 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const supabase = getSupabaseBrowser();
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://online-two-iota.vercel.app';
       const { error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
         options: {
           data: { full_name: form.name },
+          emailRedirectTo: `${siteUrl}/${locale}/dashboard`,
         },
       });
       if (error) {
