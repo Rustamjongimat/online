@@ -138,12 +138,15 @@ export default function AdminCoursesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      if (!res.ok) throw new Error('Failed');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Failed (${res.status})`);
+      }
       toast.success(editingId ? 'Course updated!' : 'Course created!');
       setDialogOpen(false);
       loadCourses();
     } catch {
-      toast.error('Failed to save course');
+      toast.error(err instanceof Error ? err.message : 'Failed to save course');
     } finally {
       setSaving(false);
     }

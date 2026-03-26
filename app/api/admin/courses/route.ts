@@ -23,34 +23,43 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json();
+  try {
+    const body = await req.json();
 
-  // Extract YouTube video ID from URL
-  if (body.youtube_url) {
-    const videoId = extractYouTubeId(body.youtube_url);
-    if (videoId) body.youtube_url = videoId;
+    // Extract YouTube video ID from URL
+    if (body.youtube_url) {
+      const videoId = extractYouTubeId(body.youtube_url);
+      if (videoId) body.youtube_url = videoId;
+    }
+
+    const db = getSupabaseAdmin();
+    const { data, error } = await db
+      .from('courses')
+      .insert({
+        title_uz: body.title_uz || '',
+        title_ru: body.title_ru || '',
+        title_en: body.title_en || '',
+        description_uz: body.description_uz || '',
+        description_ru: body.description_ru || '',
+        description_en: body.description_en || '',
+        youtube_url: body.youtube_url || '',
+        thumbnail_url: body.thumbnail_url || null,
+        category: body.category || null,
+        is_free: body.is_free ?? true,
+        is_published: body.is_published ?? false,
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase course insert error:', error);
+      return NextResponse.json({ error: error.message, details: error }, { status: 500 });
+    }
+    return NextResponse.json(data, { status: 201 });
+  } catch (err: unknown) {
+    console.error('Course create error:', err);
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  const db = getSupabaseAdmin();
-  const { data, error } = await db
-    .from('courses')
-    .insert({
-      title_uz: body.title_uz || '',
-      title_ru: body.title_ru || '',
-      title_en: body.title_en || '',
-      description_uz: body.description_uz || '',
-      description_ru: body.description_ru || '',
-      description_en: body.description_en || '',
-      youtube_url: body.youtube_url || '',
-      thumbnail_url: body.thumbnail_url || null,
-      category: body.category || null,
-      is_free: body.is_free ?? true,
-      is_published: body.is_published ?? false,
-      created_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data, { status: 201 });
 }
