@@ -1,13 +1,8 @@
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
 
-// Admin credentials — fallback values used if env vars are not set
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@onlineacademy.uz';
-// Hash of: Admin2024!
-const ADMIN_PASSWORD_HASH =
-  process.env.ADMIN_PASSWORD_HASH ||
-  '$2b$12$acSHc0kWuLTPFbdFHOehV.hIqOLaDPRpeAq/BuaAJGy1osVio7dAO';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Admin2024!';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -19,14 +14,8 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-
         if (credentials.email !== ADMIN_EMAIL) return null;
-
-        const isValid = await bcrypt.compare(
-          credentials.password,
-          ADMIN_PASSWORD_HASH
-        );
-        if (!isValid) return null;
+        if (credentials.password !== ADMIN_PASSWORD) return null;
 
         return {
           id: '1',
