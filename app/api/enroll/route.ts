@@ -5,7 +5,7 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { full_name, phone, email, course_id } = body;
+    const { full_name, phone, email, course_id, user_id } = body;
 
     if (!full_name?.trim() || !phone?.trim() || !course_id) {
       return NextResponse.json(
@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
         phone: phone.trim(),
         email: email?.trim() || null,
         course_id,
+        user_id: user_id || null,
         enrolled_at: new Date().toISOString(),
       })
       .select()
