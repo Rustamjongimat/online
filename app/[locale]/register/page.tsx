@@ -37,19 +37,33 @@ export default function RegisterPage() {
         },
       });
       if (error) {
-        toast.error(error.message || t('register_error'));
+        if (error.message.toLowerCase().includes('already registered')) {
+          toast.error(locale === 'uz' ? 'Bu email allaqachon ro\'yxatdan o\'tgan' : locale === 'ru' ? 'Этот email уже зарегистрирован' : 'This email is already registered');
+        } else {
+          toast.error(error.message || t('register_error'));
+        }
       } else {
-        toast.success(t('register_success'));
-        // Try to sign in immediately (if email confirmation disabled)
+        // Try to sign in immediately (works if email confirmation is disabled)
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: form.email,
           password: form.password,
         });
         if (!signInError) {
+          toast.success(t('register_success'));
           router.push(`/${locale}/dashboard`);
           router.refresh();
+        } else if (signInError.message.toLowerCase().includes('email not confirmed')) {
+          toast.success(
+            locale === 'uz'
+              ? 'Ro\'yxatdan o\'tdingiz! Emailingizga tasdiqlash xati yuborildi. Iltimos tasdiqlang va qayta kiring.'
+              : locale === 'ru'
+              ? 'Вы зарегистрированы! Письмо отправлено на email. Подтвердите и войдите.'
+              : 'Registered! Check your email to confirm, then log in.',
+            { duration: 6000 }
+          );
+          setTimeout(() => router.push(`/${locale}/login`), 3000);
         } else {
-          // Email confirmation required — redirect to login
+          toast.success(t('register_success'));
           setTimeout(() => router.push(`/${locale}/login`), 2000);
         }
       }

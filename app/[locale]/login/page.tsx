@@ -27,7 +27,13 @@ export default function LoginPage() {
       const supabase = getSupabaseBrowser();
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        toast.error(t('login_error'));
+        if (error.message.toLowerCase().includes('email not confirmed')) {
+          toast.error(locale === 'uz' ? 'Emailingizni tasdiqlang. Pochta qutingizni tekshiring.' : locale === 'ru' ? 'Подтвердите email. Проверьте почту.' : 'Please confirm your email first. Check your inbox.');
+        } else if (error.message.toLowerCase().includes('invalid login')) {
+          toast.error(locale === 'uz' ? 'Email yoki parol noto\'g\'ri' : locale === 'ru' ? 'Неверный email или пароль' : 'Invalid email or password');
+        } else {
+          toast.error(error.message);
+        }
       } else {
         toast.success(t('login_success'));
         router.push(`/${locale}/dashboard`);
