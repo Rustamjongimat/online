@@ -145,7 +145,7 @@ export default function AdminCoursesPage() {
       toast.success(editingId ? 'Course updated!' : 'Course created!');
       setDialogOpen(false);
       loadCourses();
-    } catch {
+    } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save course');
     } finally {
       setSaving(false);
