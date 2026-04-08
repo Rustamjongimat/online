@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   GraduationCap,
+  PlaySquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import { Button } from '@/components/ui/button';
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/courses', label: 'Courses', icon: BookOpen },
+  { href: '/admin/lessons', label: 'Lessons & Quizzes', icon: PlaySquare },
   { href: '/admin/announcements', label: 'Announcements', icon: Bell },
   { href: '/admin/students', label: 'Students', icon: Users },
   { href: '/admin/pricing', label: 'Pricing', icon: Tag },

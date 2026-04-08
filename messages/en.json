@@ -162,5 +162,17 @@
     "error": "Something went wrong.",
     "not_found": "Page not found.",
     "back_home": "Back to Home"
+  },
+  "learn": {
+    "start_learning": "Start Learning",
+    "continue_learning": "Continue Learning",
+    "lessons": "Lessons",
+    "progress": "Progress",
+    "completed": "Completed",
+    "quiz": "Quiz",
+    "certificate": "Certificate",
+    "get_certificate": "Get Certificate",
+    "download_pdf": "Download PDF",
+    "lesson_count": "lessons"
   }
 }

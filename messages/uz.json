@@ -162,5 +162,17 @@
     "error": "Xatolik yuz berdi.",
     "not_found": "Sahifa topilmadi.",
     "back_home": "Bosh sahifaga"
+  },
+  "learn": {
+    "start_learning": "O'rganishni boshlash",
+    "continue_learning": "Davom etish",
+    "lessons": "Darslar",
+    "progress": "Progress",
+    "completed": "Bajarildi",
+    "quiz": "Test",
+    "certificate": "Sertifikat",
+    "get_certificate": "Sertifikat olish",
+    "download_pdf": "PDF yuklab olish",
+    "lesson_count": "dars"
   }
 }

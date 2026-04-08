@@ -162,5 +162,17 @@
     "error": "Что-то пошло не так.",
     "not_found": "Страница не найдена.",
     "back_home": "На главную"
+  },
+  "learn": {
+    "start_learning": "Начать обучение",
+    "continue_learning": "Продолжить",
+    "lessons": "Уроки",
+    "progress": "Прогресс",
+    "completed": "Завершено",
+    "quiz": "Тест",
+    "certificate": "Сертификат",
+    "get_certificate": "Получить сертификат",
+    "download_pdf": "Скачать PDF",
+    "lesson_count": "урок"
   }
 }
