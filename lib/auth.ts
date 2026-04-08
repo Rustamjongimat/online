@@ -20,25 +20,28 @@ export const authOptions: NextAuthOptions = {
 
         // Admin check (no DB needed)
         if (
-          credentials.email === ADMIN_EMAIL &&
+          credentials.email.toLowerCase() === ADMIN_EMAIL.toLowerCase() &&
           credentials.password === ADMIN_PASSWORD
         ) {
           return { id: 'admin', email: ADMIN_EMAIL, name: 'Admin', role: 'admin' };
         }
 
-        // Regular user check via Neon
+        // Regular user — check Neon DB
         try {
           const sql = getDb();
           const rows = await sql`
             SELECT id, email, full_name, password_hash
             FROM users
-            WHERE email = ${credentials.email}
+            WHERE LOWER(email) = LOWER(${credentials.email})
             LIMIT 1
           `;
           if (rows.length === 0) return null;
 
           const user = rows[0];
-          const isValid = await bcrypt.compare(credentials.password, user.password_hash as string);
+          const isValid = await bcrypt.compare(
+            credentials.password,
+            user.password_hash as string
+          );
           if (!isValid) return null;
 
           return {
@@ -47,18 +50,19 @@ export const authOptions: NextAuthOptions = {
             name: user.full_name as string,
             role: 'user',
           };
-        } catch {
+        } catch (err) {
+          console.error('[auth] DB error:', err);
           return null;
         }
       },
     }),
   ],
   pages: {
-    signIn: '/admin/login',
+    signIn: '/login', // next-intl middleware redirects /login → /uz/login automatically
   },
   session: {
     strategy: 'jwt',
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 7 * 24 * 60 * 60,
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -77,5 +81,6 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || 'online_academy_secret_rustamjon_qtwadkdx_2024',
+  secret: process.env.NEXTAUTH_SECRET || 'online_academy_secret_2024',
+  debug: process.env.NODE_ENV === 'development',
 };

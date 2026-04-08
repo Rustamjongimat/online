@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { GraduationCap, Eye, EyeOff, Lock, Mail } from 'lucide-react';
@@ -12,16 +12,24 @@ import { Toaster } from '@/components/ui/sonner';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already logged in
-  if (session) {
-    router.replace('/admin');
-    return null;
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      router.replace('/admin');
+    }
+  }, [session, status, router]);
+
+  if (status === 'loading' || (status === 'authenticated' && session)) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,7 +37,7 @@ export default function AdminLoginPage() {
     setLoading(true);
     try {
       const result = await signIn('credentials', {
-        email,
+        email: email.trim().toLowerCase(),
         password,
         redirect: false,
       });
@@ -51,7 +59,6 @@ export default function AdminLoginPage() {
     <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-4">
       <Toaster />
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-500 rounded-2xl mb-4 shadow-lg">
             <GraduationCap className="w-9 h-9 text-white" />
@@ -62,7 +69,6 @@ export default function AdminLoginPage() {
           <p className="text-slate-400 mt-1 text-sm">Admin Panel</p>
         </div>
 
-        {/* Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <h2 className="text-xl font-bold text-slate-900 mb-1">Sign In</h2>
           <p className="text-slate-500 text-sm mb-6">Enter your admin credentials</p>
@@ -75,7 +81,7 @@ export default function AdminLoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@youracademy.com"
+                  placeholder="admin@onlineacademy.uz"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -109,7 +115,12 @@ export default function AdminLoginPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full bg-[#0F172A] hover:bg-slate-800" size="lg" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full bg-[#0F172A] hover:bg-slate-800"
+              size="lg"
+              disabled={loading}
+            >
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>

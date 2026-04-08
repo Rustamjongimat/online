@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { getServerSession } from 'next-auth';
 import { routing } from '@/i18n/routing';
+import { authOptions } from '@/lib/auth';
 import { AuthProvider } from '@/components/providers/AuthProvider';
 import SessionProvider from '@/components/providers/SessionProvider';
 
@@ -30,13 +32,16 @@ export default async function LocaleLayout({ children, params: { locale } }: Pro
     notFound();
   }
 
-  const messages = await getMessages();
+  const [messages, session] = await Promise.all([
+    getMessages(),
+    getServerSession(authOptions),
+  ]);
 
   return (
     <html lang={locale} suppressHydrationWarning>
       <body>
         <NextIntlClientProvider messages={messages}>
-          <SessionProvider session={null}>
+          <SessionProvider session={session}>
             <AuthProvider>
               {children}
             </AuthProvider>
