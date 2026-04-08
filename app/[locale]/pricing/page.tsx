@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { getTranslations } from 'next-intl/server';
-import { getSupabaseAdmin } from '@/lib/supabase';
+import { getDb } from '@/lib/db';
 import type { PricingPlan, Locale } from '@/lib/types';
 import { localizePricingPlan } from '@/lib/types';
 import Header from '@/components/public-site/Header';
@@ -15,15 +15,11 @@ export default async function PricingPage({
   params: { locale: string };
 }) {
   const t = await getTranslations({ locale, namespace: 'pricing' });
-  const db = getSupabaseAdmin();
+  const sql = getDb();
 
-  const { data } = await db
-    .from('pricing_plans')
-    .select('*')
-    .eq('is_active', true)
-    .order('price');
+  const rows = await sql`SELECT * FROM pricing_plans WHERE is_active=true ORDER BY price`;
 
-  const plans = (data || []) as PricingPlan[];
+  const plans = rows as PricingPlan[];
   const loc = locale as Locale;
   const localizedPlans = plans.map((p) => localizePricingPlan(p, loc));
 
@@ -61,7 +57,6 @@ export default async function PricingPage({
           </div>
         )}
 
-        {/* FAQ / guarantee section */}
         <div className="mt-20 text-center">
           <h2 className="text-2xl font-bold text-slate-900 mb-8">All Plans Include</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">

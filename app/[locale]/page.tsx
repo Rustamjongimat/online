@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
-import { getTranslations, getLocale } from 'next-intl/server';
-import { getSupabaseAdmin } from '@/lib/supabase';
+import { getTranslations } from 'next-intl/server';
+import { getDb } from '@/lib/db';
 import type { Course, Announcement, PricingPlan, Locale } from '@/lib/types';
 import { localizeCourse, localizeAnnouncement, localizePricingPlan } from '@/lib/types';
 import HeroSection from '@/components/public-site/HeroSection';
@@ -19,29 +19,19 @@ export default async function HomePage({ params: { locale } }: { params: { local
   const tAnn = await getTranslations({ locale, namespace: 'announcements' });
   const tPricing = await getTranslations({ locale, namespace: 'pricing' });
 
-  const db = getSupabaseAdmin();
+  const sql = getDb();
 
-  const [coursesRes, announcementsRes, pricingRes, studentsRes] = await Promise.all([
-    db
-      .from('courses')
-      .select('*')
-      .eq('is_published', true)
-      .order('created_at', { ascending: false })
-      .limit(6),
-    db
-      .from('announcements')
-      .select('*')
-      .eq('is_published', true)
-      .order('created_at', { ascending: false })
-      .limit(3),
-    db.from('pricing_plans').select('*').eq('is_active', true).order('price'),
-    db.from('students').select('id', { count: 'exact', head: true }),
+  const [coursesRows, announcementsRows, pricingRows, studentsRow] = await Promise.all([
+    sql`SELECT * FROM courses WHERE is_published=true ORDER BY created_at DESC LIMIT 6`,
+    sql`SELECT * FROM announcements WHERE is_published=true ORDER BY created_at DESC LIMIT 3`,
+    sql`SELECT * FROM pricing_plans WHERE is_active=true ORDER BY price`,
+    sql`SELECT COUNT(*) FROM students`,
   ]);
 
-  const courses = (coursesRes.data || []) as Course[];
-  const announcements = (announcementsRes.data || []) as Announcement[];
-  const pricingPlans = (pricingRes.data || []) as PricingPlan[];
-  const studentsCount = studentsRes.count || 0;
+  const courses = coursesRows as Course[];
+  const announcements = announcementsRows as Announcement[];
+  const pricingPlans = pricingRows as PricingPlan[];
+  const studentsCount = Number(studentsRow[0]?.count || 0);
 
   const loc = locale as Locale;
   const localizedCourses = courses.map((c) => localizeCourse(c, loc));

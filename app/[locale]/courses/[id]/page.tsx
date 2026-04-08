@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { getSupabaseAdmin } from '@/lib/supabase';
+import { getDb } from '@/lib/db';
 import type { Course, Lesson, Locale } from '@/lib/types';
 import { localizeCourse } from '@/lib/types';
 import Header from '@/components/public-site/Header';
@@ -20,47 +20,28 @@ export default async function CourseDetailPage({
   params: { locale: string; id: string };
 }) {
   const t = await getTranslations({ locale, namespace: 'course_detail' });
-  const db = getSupabaseAdmin();
+  const sql = getDb();
 
-  const { data: courseData } = await db
-    .from('courses')
-    .select('*')
-    .eq('id', id)
-    .eq('is_published', true)
-    .single();
+  const courseRows = await sql`SELECT * FROM courses WHERE id=${id} AND is_published=true LIMIT 1`;
+  if (courseRows.length === 0) notFound();
 
-  if (!courseData) notFound();
-
-  const course = courseData as Course;
+  const course = courseRows[0] as Course;
   const loc = locale as Locale;
   const localCourse = localizeCourse(course, loc);
 
-  // Fetch published lessons
-  const { data: lessonData } = await db
-    .from('lessons')
-    .select('id, title_uz, title_ru, title_en, duration_minutes, order_index, video_url')
-    .eq('course_id', id)
-    .eq('is_published', true)
-    .order('order_index', { ascending: true });
+  const [lessonRows, relatedRows] = await Promise.all([
+    sql`SELECT id, title_uz, title_ru, title_en, duration_minutes, order_index, video_url
+        FROM lessons WHERE course_id=${id} AND is_published=true ORDER BY order_index ASC`,
+    sql`SELECT * FROM courses WHERE is_published=true AND category=${course.category} AND id!=${id} LIMIT 3`,
+  ]);
 
-  const lessons = (lessonData || []) as Partial<Lesson>[];
+  const lessons = lessonRows as Partial<Lesson>[];
+  const relatedCourses = (relatedRows as Course[]).map((c) => localizeCourse(c, loc));
 
-  // Total duration
   const totalMinutes = lessons.reduce((sum, l) => sum + (l.duration_minutes || 0), 0);
   const hours = Math.floor(totalMinutes / 60);
   const mins = totalMinutes % 60;
   const durationLabel = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-
-  // Related courses
-  const { data: relatedData } = await db
-    .from('courses')
-    .select('*')
-    .eq('is_published', true)
-    .eq('category', course.category)
-    .neq('id', id)
-    .limit(3);
-
-  const relatedCourses = ((relatedData || []) as Course[]).map((c) => localizeCourse(c, loc));
 
   const learnLabel = locale === 'uz' ? 'O\'rganishni boshlash' : locale === 'ru' ? 'Начать обучение' : 'Start Learning';
   const lessonLabel = locale === 'uz' ? 'dars' : locale === 'ru' ? 'урок' : 'lessons';
@@ -105,7 +86,6 @@ export default async function CourseDetailPage({
             {localCourse.title}
           </h1>
 
-          {/* Stats row */}
           {lessons.length > 0 && (
             <div className="flex items-center gap-5 mt-4 text-sm text-slate-300">
               <span className="flex items-center gap-1.5">
@@ -129,16 +109,13 @@ export default async function CourseDetailPage({
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Video Player */}
             <VideoPlayer
               youtubeUrl={localCourse.youtube_url}
               title={localCourse.title}
               thumbnailUrl={localCourse.thumbnail_url}
             />
 
-            {/* Description */}
             <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
               <h2 className="text-xl font-bold text-slate-900 mb-4">
                 {locale === 'uz' ? 'Kurs haqida' : locale === 'ru' ? 'О курсе' : 'About This Course'}
@@ -148,7 +125,6 @@ export default async function CourseDetailPage({
               </p>
             </div>
 
-            {/* Lessons list */}
             {lessons.length > 0 && (
               <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
@@ -181,7 +157,6 @@ export default async function CourseDetailPage({
               </div>
             )}
 
-            {/* Certificate info */}
             <div className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-xl border border-amber-200 p-5 flex items-center gap-4">
               <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Award className="w-6 h-6 text-white" />
@@ -193,9 +168,7 @@ export default async function CourseDetailPage({
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-4">
-            {/* Start Learning CTA */}
             {lessons.length > 0 && (
               <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                 <a
@@ -211,10 +184,8 @@ export default async function CourseDetailPage({
               </div>
             )}
 
-            {/* Enrollment form */}
             <EnrollmentForm courseId={id} />
 
-            {/* Related courses */}
             {relatedCourses.length > 0 && (
               <div>
                 <h3 className="font-bold text-slate-900 mb-4">{t('related_courses')}</h3>

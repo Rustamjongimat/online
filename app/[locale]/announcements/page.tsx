@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { getTranslations } from 'next-intl/server';
-import { getSupabaseAdmin } from '@/lib/supabase';
+import { getDb } from '@/lib/db';
 import type { Announcement, Locale } from '@/lib/types';
 import { localizeAnnouncement } from '@/lib/types';
 import Header from '@/components/public-site/Header';
@@ -14,15 +14,11 @@ export default async function AnnouncementsPage({
   params: { locale: string };
 }) {
   const t = await getTranslations({ locale, namespace: 'announcements' });
-  const db = getSupabaseAdmin();
+  const sql = getDb();
 
-  const { data } = await db
-    .from('announcements')
-    .select('*')
-    .eq('is_published', true)
-    .order('created_at', { ascending: false });
+  const rows = await sql`SELECT * FROM announcements WHERE is_published=true ORDER BY created_at DESC`;
 
-  const announcements = (data || []) as Announcement[];
+  const announcements = rows as Announcement[];
   const loc = locale as Locale;
   const localized = announcements.map((a) => localizeAnnouncement(a, loc));
 

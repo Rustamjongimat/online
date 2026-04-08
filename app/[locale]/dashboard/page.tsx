@@ -2,18 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations, useLocale } from 'next-intl';
+import { useLocale } from 'next-intl';
 import { GraduationCap, BookOpen, Calendar, User, LogOut, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { getSupabaseBrowser } from '@/lib/supabase-client';
 
 interface Enrollment {
   id: string;
   enrolled_at: string;
   courses: {
     id: string;
-    title: string;
+    title_uz: string;
+    title_ru: string;
+    title_en: string;
     thumbnail_url: string | null;
     category: string | null;
     is_free: boolean;
@@ -21,12 +22,17 @@ interface Enrollment {
 }
 
 export default function DashboardPage() {
-  const t = useTranslations('auth');
   const locale = useLocale();
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [enrollLoading, setEnrollLoading] = useState(true);
+
+  const L = {
+    uz: { logout: 'Chiqish', back: 'Bosh sahifaga', title: 'Mening kurslarim', sub: 'Ro\'yxatdan o\'tgan kurslaringiz', enrolled: 'Yozilgan kurslar', enrolledOn: 'Yozilgan sana', noCourses: 'Hali kursga yozilmagan', browse: 'Kurslarga ko\'rish', profile: 'Profil', emailLabel: 'Email', memberSince: 'A\'zo bo\'lgan sana' },
+    ru: { logout: 'Выйти', back: 'На главную', title: 'Мои курсы', sub: 'Курсы, на которые вы записались', enrolled: 'Записанные курсы', enrolledOn: 'Дата записи', noCourses: 'Вы ещё не записаны на курсы', browse: 'Смотреть курсы', profile: 'Профиль', emailLabel: 'Email', memberSince: 'Дата регистрации' },
+    en: { logout: 'Sign Out', back: 'Back to Home', title: 'My Courses', sub: 'Courses you are enrolled in', enrolled: 'Enrolled Courses', enrolledOn: 'Enrolled on', noCourses: 'You have not enrolled in any courses yet', browse: 'Browse Courses', profile: 'Profile', emailLabel: 'Email', memberSince: 'Member since' },
+  }[locale as 'uz' | 'ru' | 'en'] ?? { logout: 'Sign Out', back: 'Home', title: 'Dashboard', sub: '', enrolled: 'Courses', enrolledOn: 'Enrolled', noCourses: 'No courses', browse: 'Browse', profile: 'Profile', emailLabel: 'Email', memberSince: 'Since' };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -36,16 +42,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!user) return;
-    const supabase = getSupabaseBrowser();
-    supabase
-      .from('students')
-      .select('id, enrolled_at, courses(id, title, thumbnail_url, category, is_free)')
-      .eq('user_id', user.id)
-      .order('enrolled_at', { ascending: false })
-      .then(({ data }) => {
-        setEnrollments((data as Enrollment[]) ?? []);
+    fetch('/api/enrollments')
+      .then((r) => r.json())
+      .then((d) => {
+        setEnrollments(d.enrollments || []);
         setEnrollLoading(false);
-      });
+      })
+      .catch(() => setEnrollLoading(false));
   }, [user]);
 
   const handleSignOut = async () => {
@@ -64,15 +67,13 @@ export default function DashboardPage() {
 
   if (!user) return null;
 
-  const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
-  const memberSince = new Date(user.created_at).toLocaleDateString(
-    locale === 'uz' ? 'uz-UZ' : locale === 'ru' ? 'ru-RU' : 'en-US',
-    { year: 'numeric', month: 'long', day: 'numeric' }
-  );
+  const getTitle = (course: Enrollment['courses']) => {
+    if (!course) return '';
+    return (course as Record<string, string>)[`title_${locale}`] || course.title_en;
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Top bar */}
       <header className="bg-[#0F172A] shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <a href={`/${locale}`} className="flex items-center gap-2 text-white font-bold text-xl">
@@ -81,26 +82,17 @@ export default function DashboardPage() {
             </div>
             <span>Online<span className="text-amber-400">Academy</span></span>
           </a>
-          <Button
-            onClick={handleSignOut}
-            variant="ghost"
-            size="sm"
-            className="text-slate-300 hover:text-white hover:bg-slate-700 gap-2"
-          >
+          <Button onClick={handleSignOut} variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-slate-700 gap-2">
             <LogOut className="w-4 h-4" />
-            {t('logout')}
+            {L.logout}
           </Button>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {/* Back link */}
-        <a
-          href={`/${locale}`}
-          className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 text-sm mb-6 transition-colors"
-        >
+        <a href={`/${locale}`} className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 text-sm mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          {locale === 'uz' ? 'Bosh sahifaga' : locale === 'ru' ? 'На главную' : 'Back to Home'}
+          {L.back}
         </a>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -111,19 +103,13 @@ export default function DashboardPage() {
                 <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-3">
                   <User className="w-8 h-8 text-amber-600" />
                 </div>
-                <h2 className="font-bold text-slate-900 text-lg">{fullName}</h2>
+                <h2 className="font-bold text-slate-900 text-lg">{user.name || user.email?.split('@')[0]}</h2>
                 <p className="text-slate-500 text-sm mt-1 break-all">{user.email}</p>
                 <div className="w-full border-t border-slate-100 mt-4 pt-4 text-left space-y-2">
-                  <p className="text-xs text-slate-400 uppercase font-semibold tracking-wide">
-                    {t('profile')}
-                  </p>
+                  <p className="text-xs text-slate-400 uppercase font-semibold tracking-wide">{L.profile}</p>
                   <div>
-                    <p className="text-xs text-slate-500">{t('profile_email')}</p>
+                    <p className="text-xs text-slate-500">{L.emailLabel}</p>
                     <p className="text-sm font-medium text-slate-700 break-all">{user.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">{t('profile_member_since')}</p>
-                    <p className="text-sm font-medium text-slate-700">{memberSince}</p>
                   </div>
                 </div>
               </div>
@@ -133,12 +119,12 @@ export default function DashboardPage() {
           {/* Enrolled courses */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-              <h1 className="text-xl font-bold text-slate-900 mb-1">{t('dashboard_title')}</h1>
-              <p className="text-slate-500 text-sm mb-6">{t('dashboard_subtitle')}</p>
+              <h1 className="text-xl font-bold text-slate-900 mb-1">{L.title}</h1>
+              <p className="text-slate-500 text-sm mb-6">{L.sub}</p>
 
               <h2 className="text-base font-semibold text-slate-700 mb-4 flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-amber-500" />
-                {t('enrolled_courses')}
+                {L.enrolled}
               </h2>
 
               {enrollLoading ? (
@@ -148,9 +134,9 @@ export default function DashboardPage() {
               ) : enrollments.length === 0 ? (
                 <div className="text-center py-12">
                   <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500 mb-4">{t('no_enrollments')}</p>
+                  <p className="text-slate-500 mb-4">{L.noCourses}</p>
                   <Button asChild variant="gold" size="sm">
-                    <a href={`/${locale}/courses`}>{t('browse_courses')}</a>
+                    <a href={`/${locale}/courses`}>{L.browse}</a>
                   </Button>
                 </div>
               ) : (
@@ -158,6 +144,7 @@ export default function DashboardPage() {
                   {enrollments.map((enrollment) => {
                     const course = enrollment.courses;
                     if (!course) return null;
+                    const title = getTitle(course);
                     return (
                       <a
                         key={enrollment.id}
@@ -166,11 +153,7 @@ export default function DashboardPage() {
                       >
                         <div className="w-16 h-16 rounded-lg bg-slate-200 flex-shrink-0 overflow-hidden">
                           {course.thumbnail_url ? (
-                            <img
-                              src={course.thumbnail_url}
-                              alt={course.title}
-                              className="w-full h-full object-cover"
-                            />
+                            <img src={course.thumbnail_url} alt={title} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <GraduationCap className="w-6 h-6 text-slate-400" />
@@ -179,14 +162,14 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-slate-800 text-sm group-hover:text-amber-600 transition-colors line-clamp-2">
-                            {course.title}
+                            {title}
                           </p>
                           {course.category && (
                             <p className="text-xs text-slate-500 mt-0.5">{course.category}</p>
                           )}
                           <div className="flex items-center gap-1 mt-1 text-xs text-slate-400">
                             <Calendar className="w-3 h-3" />
-                            {t('enrolled_on')}: {new Date(enrollment.enrolled_at).toLocaleDateString()}
+                            {L.enrolledOn}: {new Date(enrollment.enrolled_at).toLocaleDateString()}
                           </div>
                         </div>
                       </a>

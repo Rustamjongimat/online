@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { getSupabaseAdmin } from '@/lib/supabase';
+import { getDb } from '@/lib/db';
 import type { Announcement, Locale } from '@/lib/types';
 import { localizeAnnouncement } from '@/lib/types';
 import Header from '@/components/public-site/Header';
@@ -16,18 +16,12 @@ export default async function AnnouncementDetailPage({
   params: { locale: string; id: string };
 }) {
   const t = await getTranslations({ locale, namespace: 'announcements' });
-  const db = getSupabaseAdmin();
+  const sql = getDb();
 
-  const { data } = await db
-    .from('announcements')
-    .select('*')
-    .eq('id', id)
-    .eq('is_published', true)
-    .single();
+  const rows = await sql`SELECT * FROM announcements WHERE id=${id} AND is_published=true LIMIT 1`;
+  if (rows.length === 0) notFound();
 
-  if (!data) notFound();
-
-  const ann = data as Announcement;
+  const ann = rows[0] as Announcement;
   const loc = locale as Locale;
   const localized = localizeAnnouncement(ann, loc);
 

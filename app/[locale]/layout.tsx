@@ -4,6 +4,7 @@ import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { AuthProvider } from '@/components/providers/AuthProvider';
+import SessionProvider from '@/components/providers/SessionProvider';
 
 type Props = {
   children: React.ReactNode;
@@ -35,9 +36,11 @@ export default async function LocaleLayout({ children, params: { locale } }: Pro
     <html lang={locale} suppressHydrationWarning>
       <body>
         <NextIntlClientProvider messages={messages}>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          <SessionProvider session={null}>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </SessionProvider>
         </NextIntlClientProvider>
       </body>
     </html>

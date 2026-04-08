@@ -1,23 +1,13 @@
 export const dynamic = 'force-dynamic';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { getSupabaseAdmin } from '@/lib/supabase';
+import { getDb } from '@/lib/db';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const { searchParams } = new URL(req.url);
-  const limit = parseInt(searchParams.get('limit') || '1000');
-
-  const db = getSupabaseAdmin();
-  const { data, error, count } = await db
-    .from('students')
-    .select('*, courses(title_uz, title_ru, title_en)', { count: 'exact' })
-    .order('enrolled_at', { ascending: false })
-    .limit(limit);
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ students: data, total: count });
+  const sql = getDb();
+  const rows = await sql`SELECT s.*,c.title_uz,c.title_ru,c.title_en FROM students s LEFT JOIN courses c ON s.course_id=c.id ORDER BY s.enrolled_at DESC`;
+  return NextResponse.json(rows);
 }

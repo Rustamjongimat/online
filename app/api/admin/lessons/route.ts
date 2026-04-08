@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { getSupabaseAdmin } from '@/lib/supabase';
+import { getDb } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -11,13 +11,12 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const courseId = searchParams.get('course_id');
 
-  const db = getSupabaseAdmin();
-  let query = db.from('lessons').select('*').order('order_index', { ascending: true });
-  if (courseId) query = query.eq('course_id', courseId);
+  const sql = getDb();
+  const rows = courseId
+    ? await sql`SELECT * FROM lessons WHERE course_id=${courseId} ORDER BY order_index ASC`
+    : await sql`SELECT * FROM lessons ORDER BY order_index ASC`;
 
-  const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  return NextResponse.json(rows);
 }
 
 export async function POST(req: NextRequest) {
@@ -26,28 +25,28 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const db = getSupabaseAdmin();
+    const sql = getDb();
 
-    const { data, error } = await db
-      .from('lessons')
-      .insert({
-        course_id: body.course_id,
-        title_uz: body.title_uz || '',
-        title_ru: body.title_ru || '',
-        title_en: body.title_en || '',
-        content_uz: body.content_uz || '',
-        content_ru: body.content_ru || '',
-        content_en: body.content_en || '',
-        video_url: body.video_url || null,
-        duration_minutes: body.duration_minutes || 0,
-        order_index: body.order_index || 0,
-        is_published: body.is_published ?? false,
-      })
-      .select()
-      .single();
+    const rows = await sql`
+      INSERT INTO lessons (course_id, title_uz, title_ru, title_en, content_uz, content_ru, content_en,
+        video_url, duration_minutes, order_index, is_published)
+      VALUES (
+        ${body.course_id},
+        ${body.title_uz || ''},
+        ${body.title_ru || ''},
+        ${body.title_en || ''},
+        ${body.content_uz || ''},
+        ${body.content_ru || ''},
+        ${body.content_en || ''},
+        ${body.video_url || null},
+        ${body.duration_minutes || 0},
+        ${body.order_index || 0},
+        ${body.is_published ?? false}
+      )
+      RETURNING *
+    `;
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(rows[0], { status: 201 });
   } catch (err: unknown) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Error' }, { status: 500 });
   }

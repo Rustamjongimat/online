@@ -5,11 +5,10 @@ import { useRouter, useParams } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import {
   GraduationCap, CheckCircle2, Circle, PlayCircle, Clock,
-  ArrowLeft, Award, BookOpen, Lock
+  ArrowLeft, Award, BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { getSupabaseBrowser } from '@/lib/supabase-client';
 import type { Lesson, Course } from '@/lib/types';
 import { localizeLesson, localizeCourse } from '@/lib/types';
 import type { Locale } from '@/lib/types';
@@ -34,17 +33,13 @@ export default function CourseLearnPage() {
   const [loading, setLoading] = useState(true);
   const [certificate, setCertificate] = useState<{ certificate_number: string; issued_at: string } | null>(null);
 
-  const fetchProgress = useCallback(async (token: string) => {
-    const res = await fetch(`/api/progress/${courseId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  const fetchProgress = useCallback(async () => {
+    const res = await fetch(`/api/progress/${courseId}`);
     if (res.ok) setProgress(await res.json());
   }, [courseId]);
 
-  const checkCertificate = useCallback(async (token: string) => {
-    const res = await fetch(`/api/certificate/${courseId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  const checkCertificate = useCallback(async () => {
+    const res = await fetch(`/api/certificate/${courseId}`);
     if (res.ok) {
       const data = await res.json();
       if (data.certificate) setCertificate(data.certificate);
@@ -56,25 +51,21 @@ export default function CourseLearnPage() {
     if (!user) { router.push(`/${locale}/login`); return; }
 
     const load = async () => {
-      const supabase = getSupabaseBrowser();
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const [courseRes, progressRes, certRes] = await Promise.all([
+        fetch(`/api/courses/${courseId}`),
+        fetch(`/api/progress/${courseId}`),
+        fetch(`/api/certificate/${courseId}`),
+      ]);
 
-      // Load course
-      const { data: courseData } = await supabase
-        .from('courses').select('*').eq('id', courseId).single();
-      if (courseData) setCourse(courseData as Course);
-
-      // Load lessons
-      const { data: lessonData } = await supabase
-        .from('lessons').select('*')
-        .eq('course_id', courseId).eq('is_published', true)
-        .order('order_index', { ascending: true });
-      if (lessonData) setLessons(lessonData as Lesson[]);
-
-      if (token) {
-        await fetchProgress(token);
-        await checkCertificate(token);
+      if (courseRes.ok) {
+        const data = await courseRes.json();
+        setCourse(data.course as Course);
+        setLessons(data.lessons as Lesson[]);
+      }
+      if (progressRes.ok) setProgress(await progressRes.json());
+      if (certRes.ok) {
+        const d = await certRes.json();
+        if (d.certificate) setCertificate(d.certificate);
       }
       setLoading(false);
     };
@@ -94,9 +85,9 @@ export default function CourseLearnPage() {
   const localCourse = localizeCourse(course, locale);
 
   const labelMap = {
-    uz: { back: 'Kursga qaytish', lessons: 'Darslar', progress: 'Progress', start: 'Boshlash', continue: 'Davom etish', completed: 'Bajarildi', locked: 'Qulflangan', getCert: 'Sertifikat olish', certReady: 'Sertifikatingiz tayyor!', certNum: 'Sertifikat raqami', download: 'Yuklab olish', complete_all: 'Barcha darslarni bajaring' },
-    ru: { back: 'К курсу', lessons: 'Уроки', progress: 'Прогресс', start: 'Начать', continue: 'Продолжить', completed: 'Завершено', locked: 'Заблокировано', getCert: 'Получить сертификат', certReady: 'Ваш сертификат готов!', certNum: 'Номер сертификата', download: 'Скачать', complete_all: 'Завершите все уроки' },
-    en: { back: 'Back to Course', lessons: 'Lessons', progress: 'Progress', start: 'Start', continue: 'Continue', completed: 'Completed', locked: 'Locked', getCert: 'Get Certificate', certReady: 'Your certificate is ready!', certNum: 'Certificate Number', download: 'Download', complete_all: 'Complete all lessons' },
+    uz: { back: 'Kursga qaytish', lessons: 'Darslar', progress: 'Progress', start: 'Boshlash', continue: 'Davom etish', completed: 'Bajarildi', getCert: 'Sertifikat olish', certReady: 'Sertifikatingiz tayyor!', certNum: 'Sertifikat raqami', download: 'Yuklab olish' },
+    ru: { back: 'К курсу', lessons: 'Уроки', progress: 'Прогресс', start: 'Начать', continue: 'Продолжить', completed: 'Завершено', getCert: 'Получить сертификат', certReady: 'Ваш сертификат готов!', certNum: 'Номер сертификата', download: 'Скачать' },
+    en: { back: 'Back to Course', lessons: 'Lessons', progress: 'Progress', start: 'Start', continue: 'Continue', completed: 'Completed', getCert: 'Get Certificate', certReady: 'Your certificate is ready!', certNum: 'Certificate Number', download: 'Download' },
   };
   const L = labelMap[locale] || labelMap.en;
 
@@ -105,7 +96,6 @@ export default function CourseLearnPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
       <header className="bg-[#0F172A] sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
           <a href={`/${locale}/courses/${courseId}`} className="flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors">
@@ -122,7 +112,6 @@ export default function CourseLearnPage() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Course overview */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex-1">
@@ -139,7 +128,6 @@ export default function CourseLearnPage() {
             )}
           </div>
 
-          {/* Progress bar */}
           <div className="mt-4">
             <div className="flex justify-between text-xs text-slate-500 mb-1">
               <span>{L.progress}</span>
@@ -151,7 +139,6 @@ export default function CourseLearnPage() {
           </div>
         </div>
 
-        {/* Certificate section */}
         {progress.percent === 100 && (
           <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl p-6 mb-6 text-white">
             <div className="flex items-center gap-3 mb-3">
@@ -161,17 +148,13 @@ export default function CourseLearnPage() {
                 {certificate && <p className="text-amber-100 text-sm">{L.certNum}: {certificate.certificate_number}</p>}
               </div>
             </div>
-            <Button
-              variant="outline"
-              className="bg-white text-amber-600 hover:bg-amber-50 border-white"
-              onClick={() => router.push(`/${locale}/certificate/${courseId}`)}
-            >
+            <Button variant="outline" className="bg-white text-amber-600 hover:bg-amber-50 border-white"
+              onClick={() => router.push(`/${locale}/certificate/${courseId}`)}>
               {L.download}
             </Button>
           </div>
         )}
 
-        {/* Lessons list */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="p-4 border-b border-slate-100">
             <h2 className="font-bold text-slate-900 flex items-center gap-2">
@@ -189,11 +172,10 @@ export default function CourseLearnPage() {
                   onClick={() => router.push(`/${locale}/courses/${courseId}/learn/${lesson.id}`)}
                   className={`w-full flex items-center gap-4 p-4 text-left transition-colors hover:bg-slate-50 ${isCurrent ? 'bg-amber-50' : ''}`}
                 >
-                  <span className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold
-                    ${isCompleted ? 'bg-green-100 text-green-600' : isCurrent ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'}">
+                  <span className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isCompleted ? 'bg-green-100' : isCurrent ? 'bg-amber-100' : 'bg-slate-100'}`}>
                     {isCompleted
                       ? <CheckCircle2 className="w-5 h-5 text-green-500" />
-                      : <Circle className="w-5 h-5" />
+                      : <Circle className="w-5 h-5 text-slate-400" />
                     }
                   </span>
                   <div className="flex-1 min-w-0">

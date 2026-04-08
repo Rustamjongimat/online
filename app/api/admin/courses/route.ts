@@ -2,21 +2,16 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { getSupabaseAdmin } from '@/lib/supabase';
+import { getDb } from '@/lib/db';
 import { extractYouTubeId } from '@/lib/youtube';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const db = getSupabaseAdmin();
-  const { data, error } = await db
-    .from('courses')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  const sql = getDb();
+  const rows = await sql`SELECT * FROM courses ORDER BY created_at DESC`;
+  return NextResponse.json(rows);
 }
 
 export async function POST(req: NextRequest) {
@@ -25,41 +20,27 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-
-    // Extract YouTube video ID from URL
     if (body.youtube_url) {
       const videoId = extractYouTubeId(body.youtube_url);
       if (videoId) body.youtube_url = videoId;
     }
 
-    const db = getSupabaseAdmin();
-    const { data, error } = await db
-      .from('courses')
-      .insert({
-        title_uz: body.title_uz || '',
-        title_ru: body.title_ru || '',
-        title_en: body.title_en || '',
-        description_uz: body.description_uz || '',
-        description_ru: body.description_ru || '',
-        description_en: body.description_en || '',
-        youtube_url: body.youtube_url || '',
-        thumbnail_url: body.thumbnail_url || null,
-        category: body.category || null,
-        is_free: body.is_free ?? true,
-        is_published: body.is_published ?? false,
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Supabase course insert error:', error);
-      return NextResponse.json({ error: error.message, details: error }, { status: 500 });
-    }
-    return NextResponse.json(data, { status: 201 });
+    const sql = getDb();
+    const rows = await sql`
+      INSERT INTO courses (
+        title_uz, title_ru, title_en,
+        description_uz, description_ru, description_en,
+        youtube_url, thumbnail_url, category, is_free, is_published
+      ) VALUES (
+        ${body.title_uz || ''}, ${body.title_ru || ''}, ${body.title_en || ''},
+        ${body.description_uz || ''}, ${body.description_ru || ''}, ${body.description_en || ''},
+        ${body.youtube_url || ''}, ${body.thumbnail_url || null},
+        ${body.category || null}, ${body.is_free ?? true}, ${body.is_published ?? false}
+      ) RETURNING *
+    `;
+    return NextResponse.json(rows[0], { status: 201 });
   } catch (err: unknown) {
     console.error('Course create error:', err);
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error' }, { status: 500 });
   }
 }

@@ -5,11 +5,10 @@ import { useRouter, useParams } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, PlayCircle,
-  BookOpen, HelpCircle, Award, ChevronRight
+  BookOpen, HelpCircle, Award
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { getSupabaseBrowser } from '@/lib/supabase-client';
 import { extractYouTubeId } from '@/lib/youtube';
 import type { Lesson, QuizQuestion, Course } from '@/lib/types';
 import { localizeLesson, localizeQuizQuestion, localizeCourse } from '@/lib/types';
@@ -29,9 +28,7 @@ export default function LessonViewerPage() {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState('');
 
-  // Quiz state
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
@@ -42,10 +39,10 @@ export default function LessonViewerPage() {
     uz: { back: 'Orqaga', next: 'Keyingi dars', complete: 'Darsni tugatish', quiz: 'Test', submit: 'Javob yuborish', score: 'Natija', pass: 'Tabriklaymiz! Dars bajarildi', fail: 'Qayta urinib ko\'ring', correct: 'To\'g\'ri!', wrong: 'Noto\'g\'ri', completed: 'Bajarilgan', read: 'Maruza', video: 'Video', allDone: 'Kursni yakladingiz!', getCert: 'Sertifikat olish' },
     ru: { back: 'Назад', next: 'Следующий урок', complete: 'Завершить урок', quiz: 'Тест', submit: 'Отправить', score: 'Результат', pass: 'Поздравляем! Урок завершён', fail: 'Попробуйте снова', correct: 'Верно!', wrong: 'Неверно', completed: 'Завершён', read: 'Лекция', video: 'Видео', allDone: 'Курс завершён!', getCert: 'Получить сертификат' },
     en: { back: 'Back', next: 'Next Lesson', complete: 'Complete Lesson', quiz: 'Quiz', submit: 'Submit Answers', score: 'Score', pass: 'Congratulations! Lesson completed', fail: 'Try again', correct: 'Correct!', wrong: 'Incorrect', completed: 'Completed', read: 'Lecture', video: 'Video', allDone: 'Course completed!', getCert: 'Get Certificate' },
-  }[locale] || { back: 'Back', next: 'Next Lesson', complete: 'Complete Lesson', quiz: 'Quiz', submit: 'Submit', score: 'Score', pass: 'Completed!', fail: 'Try again', correct: 'Correct!', wrong: 'Wrong', completed: 'Completed', read: 'Lecture', video: 'Video', allDone: 'Course done!', getCert: 'Certificate' };
+  }[locale] ?? { back: 'Back', next: 'Next', complete: 'Complete', quiz: 'Quiz', submit: 'Submit', score: 'Score', pass: 'Done!', fail: 'Try again', correct: 'Correct!', wrong: 'Wrong', completed: 'Done', read: 'Lecture', video: 'Video', allDone: 'Done!', getCert: 'Certificate' };
 
-  const fetchProgress = useCallback(async (tok: string) => {
-    const res = await fetch(`/api/progress/${courseId}`, { headers: { Authorization: `Bearer ${tok}` } });
+  const fetchProgress = useCallback(async () => {
+    const res = await fetch(`/api/progress/${courseId}`);
     if (res.ok) {
       const d = await res.json();
       setCompletedIds(d.completedIds || []);
@@ -57,28 +54,30 @@ export default function LessonViewerPage() {
     if (!user) { router.push(`/${locale}/login`); return; }
 
     const load = async () => {
-      const supabase = getSupabaseBrowser();
-      const { data: { session } } = await supabase.auth.getSession();
-      const tok = session?.access_token || '';
-      setToken(tok);
-
-      const [courseRes, allLessonsRes, lessonRes, quizRes] = await Promise.all([
-        supabase.from('courses').select('*').eq('id', courseId).single(),
-        supabase.from('lessons').select('*').eq('course_id', courseId).eq('is_published', true).order('order_index', { ascending: true }),
-        supabase.from('lessons').select('*').eq('id', lessonId).single(),
-        supabase.from('quiz_questions').select('*').eq('lesson_id', lessonId).order('order_index', { ascending: true }),
+      const [courseRes, lessonRes, progressRes] = await Promise.all([
+        fetch(`/api/courses/${courseId}`),
+        fetch(`/api/lessons/${lessonId}`),
+        fetch(`/api/progress/${courseId}`),
       ]);
 
-      if (courseRes.data) setCourse(courseRes.data as Course);
-      if (allLessonsRes.data) setLessons(allLessonsRes.data as Lesson[]);
-      if (lessonRes.data) setLesson(lessonRes.data as Lesson);
-      if (quizRes.data) setQuestions(quizRes.data as QuizQuestion[]);
-
-      if (tok) await fetchProgress(tok);
+      if (courseRes.ok) {
+        const d = await courseRes.json();
+        setCourse(d.course as Course);
+        setLessons(d.lessons as Lesson[]);
+      }
+      if (lessonRes.ok) {
+        const d = await lessonRes.json();
+        setLesson(d.lesson as Lesson);
+        setQuestions(d.questions as QuizQuestion[]);
+      }
+      if (progressRes.ok) {
+        const d = await progressRes.json();
+        setCompletedIds(d.completedIds || []);
+      }
       setLoading(false);
     };
     load();
-  }, [user, authLoading, courseId, lessonId, locale, router, fetchProgress]);
+  }, [user, authLoading, courseId, lessonId, locale, router]);
 
   useEffect(() => {
     if (completedIds.includes(lessonId)) {
@@ -101,20 +100,19 @@ export default function LessonViewerPage() {
     setScore(pct);
     setSubmitted(true);
 
-    if (pct >= 60 && token) {
+    if (pct >= 60) {
       await markComplete(pct);
     }
   };
 
   const markComplete = async (quizScore?: number) => {
-    if (!token) return;
     setMarking(true);
     await fetch('/api/progress', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ lesson_id: lessonId, course_id: courseId, quiz_score: quizScore ?? null }),
     });
-    await fetchProgress(token);
+    await fetchProgress();
     setAlreadyDone(true);
     setMarking(false);
   };
@@ -135,7 +133,6 @@ export default function LessonViewerPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Top bar */}
       <header className="bg-[#0F172A] sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
           <button onClick={() => router.push(`/${locale}/courses/${courseId}/learn`)}
@@ -151,7 +148,6 @@ export default function LessonViewerPage() {
       </header>
 
       <div className="flex-1 max-w-4xl w-full mx-auto px-4 py-8 space-y-6">
-        {/* Lesson title */}
         <div>
           <div className="flex items-center gap-2 text-slate-400 text-sm mb-1">
             <span>{currentIndex + 1} / {lessons.length}</span>
@@ -160,7 +156,6 @@ export default function LessonViewerPage() {
           <h1 className="text-2xl font-bold text-slate-900">{loc.title}</h1>
         </div>
 
-        {/* Video */}
         {videoId && (
           <div className="bg-black rounded-2xl overflow-hidden shadow-lg">
             <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
@@ -175,7 +170,6 @@ export default function LessonViewerPage() {
           </div>
         )}
 
-        {/* Lecture content */}
         {loc.content && (
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
             <h2 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -187,7 +181,6 @@ export default function LessonViewerPage() {
           </div>
         )}
 
-        {/* Quiz section */}
         {localQuestions.length > 0 && (
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
             <h2 className="font-bold text-slate-800 mb-5 flex items-center gap-2">
@@ -195,7 +188,6 @@ export default function LessonViewerPage() {
               <span className="text-xs text-slate-400 font-normal">({localQuestions.length} ta savol)</span>
             </h2>
 
-            {/* Score result */}
             {submitted && !alreadyDone && (
               <div className={`rounded-xl p-4 mb-5 flex items-center gap-3 ${score >= 60 ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                 {score >= 60 ? <CheckCircle2 className="w-5 h-5" /> : <HelpCircle className="w-5 h-5" />}
@@ -266,7 +258,6 @@ export default function LessonViewerPage() {
           </div>
         )}
 
-        {/* No quiz — mark complete button */}
         {localQuestions.length === 0 && !alreadyDone && (
           <div className="bg-white rounded-2xl border border-slate-100 p-6 text-center">
             <Button variant="gold" onClick={() => markComplete()} disabled={marking}>
@@ -275,7 +266,6 @@ export default function LessonViewerPage() {
           </div>
         )}
 
-        {/* Navigation */}
         <div className="flex items-center justify-between pt-2">
           <Button variant="outline" onClick={() => router.push(`/${locale}/courses/${courseId}/learn`)}>
             <ArrowLeft className="w-4 h-4 mr-2" /> {L.back}

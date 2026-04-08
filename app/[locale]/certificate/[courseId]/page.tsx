@@ -6,7 +6,6 @@ import { useLocale } from 'next-intl';
 import { Award, Download, ArrowLeft, CheckCircle2, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { getSupabaseBrowser } from '@/lib/supabase-client';
 import type { Locale } from '@/lib/types';
 
 interface CertData {
@@ -32,24 +31,17 @@ export default function CertificatePage() {
     if (authLoading) return;
     if (!user) { router.push(`/${locale}/login`); return; }
 
-    const load = async () => {
-      const supabase = getSupabaseBrowser();
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) { setError('No session'); setLoading(false); return; }
-
-      const res = await fetch(`/api/certificate/${courseId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.certificate) {
-        setCert(data.certificate);
-      } else {
-        setError(locale === 'uz' ? 'Sertifikat topilmadi. Barcha darslarni bajaring.' : locale === 'ru' ? 'Сертификат не найден. Завершите все уроки.' : 'Certificate not found. Complete all lessons first.');
-      }
-      setLoading(false);
-    };
-    load();
+    fetch(`/api/certificate/${courseId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.certificate) {
+          setCert(data.certificate);
+        } else {
+          setError(locale === 'uz' ? 'Sertifikat topilmadi. Barcha darslarni bajaring.' : locale === 'ru' ? 'Сертификат не найден. Завершите все уроки.' : 'Certificate not found. Complete all lessons first.');
+        }
+        setLoading(false);
+      })
+      .catch(() => { setError('Error'); setLoading(false); });
   }, [user, authLoading, courseId, locale, router]);
 
   const handlePrint = () => window.print();
@@ -74,14 +66,13 @@ export default function CertificatePage() {
     : '';
 
   const L = {
-    uz: { back: 'Kursga qaytish', download: 'PDF yuklash', certTitle: 'Muvaffaqiyat sertifikati', certText: 'Ushbu sertifikat', certText2: 'kursini muvaffaqiyatli tamomlagan', certText3: 'shaxsga berildi', issued: 'Berilgan sana', certNum: 'Sertifikat raqami', notFound: 'Sertifikat topilmadi' },
-    ru: { back: 'К курсу', download: 'Скачать PDF', certTitle: 'Сертификат об окончании', certText: 'Настоящий сертификат удостоверяет, что', certText2: 'успешно прошёл(а) курс', certText3: '', issued: 'Дата выдачи', certNum: 'Номер сертификата', notFound: 'Сертификат не найден' },
-    en: { back: 'Back to Course', download: 'Download PDF', certTitle: 'Certificate of Completion', certText: 'This certifies that', certText2: 'has successfully completed the course', certText3: '', issued: 'Date Issued', certNum: 'Certificate Number', notFound: 'Certificate not found' },
-  }[locale] || { back: 'Back', download: 'Download PDF', certTitle: 'Certificate', certText: 'This certifies that', certText2: 'completed', certText3: '', issued: 'Issued', certNum: 'Certificate No.', notFound: 'Not found' };
+    uz: { back: 'Kursga qaytish', download: 'PDF yuklash', certTitle: 'Muvaffaqiyat sertifikati', certText: 'Ushbu sertifikat', certText2: 'kursini muvaffaqiyatli tamomlagan', certText3: 'shaxsga berildi', issued: 'Berilgan sana', certNum: 'Sertifikat raqami' },
+    ru: { back: 'К курсу', download: 'Скачать PDF', certTitle: 'Сертификат об окончании', certText: 'Настоящий сертификат удостоверяет, что', certText2: 'успешно прошёл(а) курс', certText3: '', issued: 'Дата выдачи', certNum: 'Номер сертификата' },
+    en: { back: 'Back to Course', download: 'Download PDF', certTitle: 'Certificate of Completion', certText: 'This certifies that', certText2: 'has successfully completed the course', certText3: '', issued: 'Date Issued', certNum: 'Certificate Number' },
+  }[locale] ?? { back: 'Back', download: 'Download PDF', certTitle: 'Certificate', certText: 'This certifies that', certText2: 'completed', certText3: '', issued: 'Issued', certNum: 'Certificate No.' };
 
   return (
     <>
-      {/* Print styles */}
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -92,7 +83,6 @@ export default function CertificatePage() {
       `}</style>
 
       <div className="min-h-screen bg-slate-100 flex flex-col">
-        {/* Action bar — hidden on print */}
         <div className="no-print bg-[#0F172A] py-3 px-4">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
             <button
@@ -119,18 +109,14 @@ export default function CertificatePage() {
               </Button>
             </div>
           ) : cert ? (
-            /* Certificate card */
             <div className="cert-wrapper w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden">
-              {/* Top gradient border */}
               <div className="h-3 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600" />
 
               <div className="p-10 sm:p-14 relative">
-                {/* Background watermark */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
                   <GraduationCap className="w-96 h-96 text-amber-500" />
                 </div>
 
-                {/* Header */}
                 <div className="text-center mb-8 relative">
                   <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-500 rounded-2xl shadow-lg mb-4">
                     <GraduationCap className="w-9 h-9 text-white" />
@@ -141,14 +127,12 @@ export default function CertificatePage() {
                   <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">{L.certTitle}</h1>
                 </div>
 
-                {/* Divider */}
                 <div className="flex items-center gap-4 mb-8">
                   <div className="flex-1 h-px bg-slate-200" />
                   <Award className="w-5 h-5 text-amber-500" />
                   <div className="flex-1 h-px bg-slate-200" />
                 </div>
 
-                {/* Content */}
                 <div className="text-center space-y-4 relative">
                   <p className="text-slate-500 text-lg">{L.certText}</p>
                   <p className="text-4xl sm:text-5xl font-bold text-slate-900 font-serif">{cert.full_name}</p>
@@ -157,7 +141,6 @@ export default function CertificatePage() {
                   {L.certText3 && <p className="text-slate-500">{L.certText3}</p>}
                 </div>
 
-                {/* Footer */}
                 <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6">
                   <div className="text-center sm:text-left">
                     <div className="w-32 h-px bg-slate-300 mb-1" />
@@ -181,7 +164,6 @@ export default function CertificatePage() {
                 </div>
               </div>
 
-              {/* Bottom gradient */}
               <div className="h-3 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400" />
             </div>
           ) : null}

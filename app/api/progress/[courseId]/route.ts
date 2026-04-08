@@ -1,46 +1,26 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { getDb } from '@/lib/db';
 
-// GET — fetch user's progress for a specific course
-export async function GET(req: NextRequest, { params }: { params: { courseId: string } }) {
-  try {
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) return NextResponse.json({ completedLessons: [], percent: 0 });
+export async function GET(_req: NextRequest, { params }: { params: { courseId: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ completedIds: [], percent: 0, totalLessons: 0, completedCount: 0 });
 
-    const token = authHeader.replace('Bearer ', '');
-    const supabase = getSupabaseAdmin();
+  const userId = (session.user as { id?: string }).id;
+  if (!userId) return NextResponse.json({ completedIds: [], percent: 0, totalLessons: 0, completedCount: 0 });
 
-    const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) return NextResponse.json({ completedLessons: [], percent: 0 });
+  const sql = getDb();
+  const [progress, total] = await Promise.all([
+    sql`SELECT lesson_id, quiz_score, completed_at FROM user_lesson_progress WHERE user_id=${userId} AND course_id=${params.courseId}`,
+    sql`SELECT COUNT(*) FROM lessons WHERE course_id=${params.courseId} AND is_published=true`,
+  ]);
 
-    // Get completed lesson IDs for this course
-    const { data: progressData } = await supabase
-      .from('user_lesson_progress')
-      .select('lesson_id, quiz_score, completed_at')
-      .eq('user_id', user.id)
-      .eq('course_id', params.courseId);
+  const completedIds = progress.map((p) => p.lesson_id as string);
+  const totalLessons = Number(total[0].count);
+  const completedCount = completedIds.length;
+  const percent = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
-    // Get total published lessons count
-    const { count } = await supabase
-      .from('lessons')
-      .select('*', { count: 'exact', head: true })
-      .eq('course_id', params.courseId)
-      .eq('is_published', true);
-
-    const completedIds = (progressData || []).map((p) => p.lesson_id);
-    const totalLessons = count || 0;
-    const completedCount = completedIds.length;
-    const percent = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
-
-    return NextResponse.json({
-      completedLessons: progressData || [],
-      completedIds,
-      totalLessons,
-      completedCount,
-      percent,
-    });
-  } catch {
-    return NextResponse.json({ completedLessons: [], percent: 0 });
-  }
+  return NextResponse.json({ completedIds, completedLessons: progress, totalLessons, completedCount, percent });
 }
