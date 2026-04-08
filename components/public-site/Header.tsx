@@ -64,7 +64,7 @@ export default function Header() {
     router.refresh();
   };
 
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+  const displayName = user?.name || user?.email?.split('@')[0] || 'User';
 
   return (
     <header
