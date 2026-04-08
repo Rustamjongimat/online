@@ -69,7 +69,8 @@ export default function DashboardPage() {
 
   const getTitle = (course: Enrollment['courses']) => {
     if (!course) return '';
-    return (course as Record<string, string>)[`title_${locale}`] || course.title_en;
+    const key = `title_${locale}` as 'title_uz' | 'title_ru' | 'title_en';
+    return course[key] || course.title_en;
   };
 
   return (

@@ -134,7 +134,7 @@ export default async function CourseDetailPage({
                 </h2>
                 <div className="space-y-2">
                   {lessons.map((lesson, idx) => {
-                    const title = (lesson as Record<string, string>)[`title_${locale}`] || (lesson as Record<string, string>).title_en || '';
+                    const title = (lesson as any)[`title_${locale}`] || (lesson as any).title_en || '';
                     return (
                       <div key={lesson.id} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                         <span className="w-7 h-7 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
