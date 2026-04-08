@@ -8,6 +8,14 @@ function genCertNumber() {
   return `OA-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 }
 
+function nestCourseRow(row: Record<string, unknown>) {
+  const { title_uz, title_ru, title_en, ...cert } = row;
+  return {
+    ...cert,
+    courses: { title_uz, title_ru, title_en },
+  };
+}
+
 export async function GET(_req: NextRequest, { params }: { params: { courseId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ certificate: null });
@@ -25,7 +33,9 @@ export async function GET(_req: NextRequest, { params }: { params: { courseId: s
     WHERE cert.user_id=${userId} AND cert.course_id=${params.courseId}
     LIMIT 1
   `;
-  if (existing.length > 0) return NextResponse.json({ certificate: existing[0] });
+  if (existing.length > 0) {
+    return NextResponse.json({ certificate: nestCourseRow(existing[0] as Record<string, unknown>) });
+  }
 
   // Check 100% progress
   const [progress, total] = await Promise.all([
@@ -37,9 +47,13 @@ export async function GET(_req: NextRequest, { params }: { params: { courseId: s
   const totalLessons = Number(total[0].count);
 
   if (totalLessons === 0 || completedCount < totalLessons) {
-    return NextResponse.json({ certificate: null, percent: totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0 });
+    return NextResponse.json({
+      certificate: null,
+      percent: totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0,
+    });
   }
 
+  // Issue new certificate
   const fullName = session.user.name || session.user.email?.split('@')[0] || 'Student';
   const cert = await sql`
     INSERT INTO certificates (user_id, course_id, certificate_number, full_name)
@@ -54,5 +68,8 @@ export async function GET(_req: NextRequest, { params }: { params: { courseId: s
     WHERE cert.id=${cert[0].id}
   `;
 
-  return NextResponse.json({ certificate: certWithCourse[0], newly_issued: true });
+  return NextResponse.json({
+    certificate: nestCourseRow(certWithCourse[0] as Record<string, unknown>),
+    newly_issued: true,
+  });
 }
