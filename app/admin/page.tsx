@@ -54,7 +54,7 @@ export default function AdminDashboard() {
         if (statsRes.ok) setStats(await statsRes.json());
         if (recentRes.ok) {
           const data = await recentRes.json();
-          setRecent(data.students || []);
+          setRecent(Array.isArray(data) ? data : data.students || []);
         }
       } finally {
         setLoading(false);

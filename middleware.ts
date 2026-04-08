@@ -13,7 +13,7 @@ export default async function middleware(req: NextRequest) {
     if (!pathname.startsWith('/admin/login')) {
       const token = await getToken({
         req,
-        secret: process.env.NEXTAUTH_SECRET,
+        secret: process.env.NEXTAUTH_SECRET || 'online_academy_secret_2024',
       });
       if (!token) {
         return NextResponse.redirect(new URL('/admin/login', req.url));
