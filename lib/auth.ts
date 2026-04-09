@@ -2,6 +2,7 @@ import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { getDb } from './db';
+import { AUTH_SECRET } from './auth-secret';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@onlineacademy.uz';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Admin2024!';
@@ -81,6 +82,6 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || 'online_academy_secret_2024',
+  secret: AUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
 };

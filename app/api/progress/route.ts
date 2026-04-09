@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { getDb } from '@/lib/db';
+import { AUTH_SECRET } from '@/lib/auth-secret';
 
 async function ensureTable() {
   const sql = getDb();
@@ -28,7 +29,7 @@ const isUuid = (v: unknown) =>
 
 export async function POST(req: NextRequest) {
   try {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    const token = await getToken({ req, secret: AUTH_SECRET });
     if (!token) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }

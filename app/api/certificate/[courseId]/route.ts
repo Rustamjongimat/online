@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { getDb } from '@/lib/db';
+import { AUTH_SECRET } from '@/lib/auth-secret';
 
 const isUuid = (v: unknown) =>
   typeof v === 'string' &&
@@ -47,7 +48,7 @@ export async function GET(
   { params }: { params: { courseId: string } }
 ) {
   try {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    const token = await getToken({ req, secret: AUTH_SECRET });
     if (!token) return NextResponse.json({ certificate: null });
 
     const userId = token.id as string | undefined;
