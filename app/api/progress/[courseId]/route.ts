@@ -4,23 +4,64 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 
-export async function GET(_req: NextRequest, { params }: { params: { courseId: string } }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ completedIds: [], percent: 0, totalLessons: 0, completedCount: 0 });
-
-  const userId = (session.user as { id?: string }).id;
-  if (!userId) return NextResponse.json({ completedIds: [], percent: 0, totalLessons: 0, completedCount: 0 });
-
+async function ensureTable() {
   const sql = getDb();
-  const [progress, total] = await Promise.all([
-    sql`SELECT lesson_id, quiz_score, completed_at FROM user_lesson_progress WHERE user_id=${userId} AND course_id=${params.courseId}`,
-    sql`SELECT COUNT(*) FROM lessons WHERE course_id=${params.courseId} AND is_published=true`,
-  ]);
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_lesson_progress (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL,
+      lesson_id UUID NOT NULL,
+      course_id UUID NOT NULL,
+      quiz_score INTEGER,
+      completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id, lesson_id)
+    )
+  `;
+}
 
-  const completedIds = progress.map((p) => p.lesson_id as string);
-  const totalLessons = Number(total[0].count);
-  const completedCount = completedIds.length;
-  const percent = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: { courseId: string } }
+) {
+  const empty = { completedIds: [], percent: 0, totalLessons: 0, completedCount: 0 };
 
-  return NextResponse.json({ completedIds, completedLessons: progress, totalLessons, completedCount, percent });
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return NextResponse.json(empty);
+
+    const userId = (session.user as { id?: string }).id;
+    if (!userId) return NextResponse.json(empty);
+
+    const sql = getDb();
+    await ensureTable();
+
+    const [progress, total] = await Promise.all([
+      sql`
+        SELECT lesson_id, quiz_score, completed_at
+        FROM user_lesson_progress
+        WHERE user_id = ${userId} AND course_id = ${params.courseId}
+      `,
+      sql`
+        SELECT COUNT(*) AS count
+        FROM lessons
+        WHERE course_id = ${params.courseId} AND is_published = true
+      `,
+    ]);
+
+    const completedIds = progress.map((p) => p.lesson_id as string);
+    const totalLessons = Number(total[0]?.count ?? 0);
+    const completedCount = completedIds.length;
+    const percent = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+
+    return NextResponse.json({
+      completedIds,
+      completedLessons: progress,
+      totalLessons,
+      completedCount,
+      percent,
+    });
+  } catch (err) {
+    console.error('[GET /api/progress/:courseId] error:', err);
+    return NextResponse.json({ completedIds: [], percent: 0, totalLessons: 0, completedCount: 0 });
+  }
 }
