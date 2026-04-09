@@ -49,6 +49,9 @@ export async function GET(
 
     const userId = (session.user as { id?: string }).id;
     if (!userId) return NextResponse.json({ certificate: null });
+    // Admin id is not a UUID — no certificate for admin
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+    if (!isUuid) return NextResponse.json({ certificate: null });
 
     const sql = getDb();
     await ensureTables();

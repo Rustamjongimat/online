@@ -31,6 +31,9 @@ export async function GET(
 
     const userId = (session.user as { id?: string }).id;
     if (!userId) return NextResponse.json(empty);
+    // Admin id is not a UUID — return empty progress
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+    if (!isUuid) return NextResponse.json(empty);
 
     const sql = getDb();
     await ensureTable();

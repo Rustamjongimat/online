@@ -35,6 +35,11 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: 'No user id in session token' }, { status: 401 });
     }
+    // Admin user id is not a UUID — skip progress tracking for admin
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+    if (!isUuid) {
+      return NextResponse.json({ success: true, skipped: 'admin' });
+    }
 
     const body = await req.json();
     const { lesson_id, course_id, quiz_score } = body;
