@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import {
   GraduationCap, CheckCircle2, Circle, PlayCircle, Clock,
-  ArrowLeft, Award, BookOpen
+  ArrowLeft, Award, BookOpen, Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -38,14 +38,6 @@ export default function CourseLearnPage() {
     if (res.ok) setProgress(await res.json());
   }, [courseId]);
 
-  const checkCertificate = useCallback(async () => {
-    const res = await fetch(`/api/certificate/${courseId}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data.certificate) setCertificate(data.certificate);
-    }
-  }, [courseId]);
-
   useEffect(() => {
     if (authLoading) return;
     if (!user) { router.push(`/${locale}/login`); return; }
@@ -70,7 +62,7 @@ export default function CourseLearnPage() {
       setLoading(false);
     };
     load();
-  }, [user, authLoading, courseId, locale, router, fetchProgress, checkCertificate]);
+  }, [user, authLoading, courseId, locale, router, fetchProgress]);
 
   if (authLoading || loading) {
     return (
@@ -85,14 +77,18 @@ export default function CourseLearnPage() {
   const localCourse = localizeCourse(course, locale);
 
   const labelMap = {
-    uz: { back: 'Kursga qaytish', lessons: 'Darslar', progress: 'Progress', start: 'Boshlash', continue: 'Davom etish', completed: 'Bajarildi', getCert: 'Sertifikat olish', certReady: 'Sertifikatingiz tayyor!', certNum: 'Sertifikat raqami', download: 'Yuklab olish' },
-    ru: { back: 'К курсу', lessons: 'Уроки', progress: 'Прогресс', start: 'Начать', continue: 'Продолжить', completed: 'Завершено', getCert: 'Получить сертификат', certReady: 'Ваш сертификат готов!', certNum: 'Номер сертификата', download: 'Скачать' },
-    en: { back: 'Back to Course', lessons: 'Lessons', progress: 'Progress', start: 'Start', continue: 'Continue', completed: 'Completed', getCert: 'Get Certificate', certReady: 'Your certificate is ready!', certNum: 'Certificate Number', download: 'Download' },
+    uz: { back: 'Kursga qaytish', lessons: 'Darslar', progress: 'Progress', start: 'Boshlash', continue: 'Davom etish', completed: 'Bajarildi', getCert: 'Sertifikat olish', certReady: 'Sertifikatingiz tayyor!', certNum: 'Sertifikat raqami', download: 'Sertifikatni ko\'rish', locked: 'Qulflangan — avvalgi darsni tugatng' },
+    ru: { back: 'К курсу', lessons: 'Уроки', progress: 'Прогресс', start: 'Начать', continue: 'Продолжить', completed: 'Завершено', getCert: 'Получить сертификат', certReady: 'Ваш сертификат готов!', certNum: 'Номер сертификата', download: 'Открыть сертификат', locked: 'Заблокировано — сначала пройдите предыдущий урок' },
+    en: { back: 'Back to Course', lessons: 'Lessons', progress: 'Progress', start: 'Start', continue: 'Continue', completed: 'Completed', getCert: 'Get Certificate', certReady: 'Your certificate is ready!', certNum: 'Certificate Number', download: 'View Certificate', locked: 'Locked — complete the previous lesson first' },
   };
   const L = labelMap[locale] || labelMap.en;
 
-  const firstIncomplete = lessons.find((l) => !progress.completedIds.includes(l.id));
-  const nextLesson = firstIncomplete || lessons[0];
+  // A lesson is unlocked if it's the first OR the previous lesson is completed
+  const isUnlocked = (idx: number) =>
+    idx === 0 || progress.completedIds.includes(lessons[idx - 1]?.id);
+
+  const firstIncomplete = lessons.find((l, idx) => isUnlocked(idx) && !progress.completedIds.includes(l.id));
+  const nextLesson = firstIncomplete || (lessons.length > 0 ? lessons[0] : null);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -112,6 +108,7 @@ export default function CourseLearnPage() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 py-8">
+        {/* Course header card */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex-1">
@@ -139,6 +136,7 @@ export default function CourseLearnPage() {
           </div>
         </div>
 
+        {/* Certificate banner */}
         {progress.percent === 100 && (
           <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl p-6 mb-6 text-white">
             <div className="flex items-center gap-3 mb-3">
@@ -155,6 +153,7 @@ export default function CourseLearnPage() {
           </div>
         )}
 
+        {/* Lessons list */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="p-4 border-b border-slate-100">
             <h2 className="font-bold text-slate-900 flex items-center gap-2">
@@ -165,28 +164,42 @@ export default function CourseLearnPage() {
             {lessons.map((lesson, idx) => {
               const loc = localizeLesson(lesson, locale);
               const isCompleted = progress.completedIds.includes(lesson.id);
-              const isCurrent = nextLesson?.id === lesson.id;
+              const unlocked = isUnlocked(idx);
+              const isCurrent = nextLesson?.id === lesson.id && unlocked;
+
               return (
                 <button
                   key={lesson.id}
-                  onClick={() => router.push(`/${locale}/courses/${courseId}/learn/${lesson.id}`)}
-                  className={`w-full flex items-center gap-4 p-4 text-left transition-colors hover:bg-slate-50 ${isCurrent ? 'bg-amber-50' : ''}`}
+                  disabled={!unlocked}
+                  onClick={() => unlocked && router.push(`/${locale}/courses/${courseId}/learn/${lesson.id}`)}
+                  title={!unlocked ? L.locked : undefined}
+                  className={`w-full flex items-center gap-4 p-4 text-left transition-colors
+                    ${unlocked ? 'hover:bg-slate-50 cursor-pointer' : 'cursor-not-allowed opacity-60'}
+                    ${isCurrent ? 'bg-amber-50' : ''}
+                  `}
                 >
-                  <span className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isCompleted ? 'bg-green-100' : isCurrent ? 'bg-amber-100' : 'bg-slate-100'}`}>
+                  {/* Status icon */}
+                  <span className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                    ${isCompleted ? 'bg-green-100' : isCurrent ? 'bg-amber-100' : unlocked ? 'bg-slate-100' : 'bg-slate-100'}`}>
                     {isCompleted
                       ? <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      : !unlocked
+                      ? <Lock className="w-4 h-4 text-slate-400" />
                       : <Circle className="w-5 h-5 text-slate-400" />
                     }
                   </span>
+
                   <div className="flex-1 min-w-0">
-                    <p className={`font-medium truncate ${isCompleted ? 'text-slate-500 line-through' : 'text-slate-800'}`}>
+                    <p className={`font-medium truncate ${isCompleted ? 'text-slate-400 line-through' : !unlocked ? 'text-slate-400' : 'text-slate-800'}`}>
                       {idx + 1}. {loc.title}
                     </p>
                     <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-400">
                       {lesson.video_url && <span className="flex items-center gap-1"><PlayCircle className="w-3 h-3" /> Video</span>}
                       {lesson.duration_minutes > 0 && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {lesson.duration_minutes} min</span>}
+                      {!unlocked && <span className="flex items-center gap-1 text-amber-500"><Lock className="w-3 h-3" />{L.locked}</span>}
                     </div>
                   </div>
+
                   {isCompleted && <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />}
                   {isCurrent && !isCompleted && <div className="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0" />}
                 </button>

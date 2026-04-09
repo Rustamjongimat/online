@@ -91,6 +91,9 @@ export default function LessonViewerPage() {
   const isLastLesson = currentIndex === lessons.length - 1;
   const allCourseDone = completedIds.length === lessons.length && lessons.length > 0;
 
+  // Block access if previous lesson is not completed (sequential lock)
+  const isLessonLocked = currentIndex > 0 && !completedIds.includes(lessons[currentIndex - 1]?.id);
+
   const handleSubmitQuiz = async () => {
     if (!lesson) return;
     const localQs = questions.map((q) => localizeQuizQuestion(q, locale));
@@ -107,11 +110,19 @@ export default function LessonViewerPage() {
 
   const markComplete = async (quizScore?: number) => {
     setMarking(true);
-    await fetch('/api/progress', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lesson_id: lessonId, course_id: courseId, quiz_score: quizScore ?? null }),
-    });
+    try {
+      const res = await fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lesson_id: lessonId, course_id: courseId, quiz_score: quizScore ?? null }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('[markComplete] failed:', err);
+      }
+    } catch (e) {
+      console.error('[markComplete] network error:', e);
+    }
     await fetchProgress();
     setAlreadyDone(true);
     setMarking(false);
@@ -126,6 +137,32 @@ export default function LessonViewerPage() {
   }
 
   if (!lesson || !course) return null;
+
+  // Show locked screen if previous lesson not done
+  if (isLessonLocked) {
+    const prevLesson = lessons[currentIndex - 1];
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 text-center">
+        <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mb-6">
+          <ArrowLeft className="w-10 h-10 text-amber-500" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 mb-2">
+          {locale === 'uz' ? 'Bu dars qulflangan' : locale === 'ru' ? 'Урок заблокирован' : 'Lesson Locked'}
+        </h2>
+        <p className="text-slate-500 mb-6 max-w-sm">
+          {locale === 'uz'
+            ? 'Avvalgi darsni muvaffaqiyatli tugatganingizdan so\'ng bu dars ochiladi.'
+            : locale === 'ru'
+            ? 'Этот урок откроется после успешного завершения предыдущего урока.'
+            : 'This lesson unlocks after you complete the previous lesson.'}
+        </p>
+        <Button variant="gold" onClick={() => router.push(`/${locale}/courses/${courseId}/learn/${prevLesson.id}`)}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          {locale === 'uz' ? 'Avvalgi darsga qaytish' : locale === 'ru' ? 'К предыдущему уроку' : 'Go to previous lesson'}
+        </Button>
+      </div>
+    );
+  }
 
   const loc = localizeLesson(lesson, locale);
   const localQuestions = questions.map((q) => localizeQuizQuestion(q, locale));
