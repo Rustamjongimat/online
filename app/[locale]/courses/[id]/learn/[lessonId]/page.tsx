@@ -110,29 +110,30 @@ export default function LessonViewerPage() {
         }),
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('[markComplete] server error:', err);
-        setSaveError(err.error || 'Failed to save progress');
+        console.error('[markComplete] server error:', data);
+        setSaveError(data.error || 'Server error');
         setMarking(false);
         return false;
       }
 
-      // Re-fetch progress from server to confirm save
-      const saved = await fetchProgress();
-      const confirmed = (saved || []).includes(lessonId);
-      if (!confirmed) {
-        setSaveError(locale === 'uz' ? 'Progress saqlanmadi. Qayta urinib ko\'ring.' : locale === 'ru' ? 'Прогресс не сохранён.' : 'Progress not saved. Try again.');
-        setMarking(false);
-        return false;
-      }
-
+      // POST succeeded — update local state immediately and sync from server
+      setCompletedIds((prev) => prev.includes(lessonId) ? prev : [...prev, lessonId]);
       setAlreadyDone(true);
       setMarking(false);
+
+      // Background sync (don't await — don't block UI)
+      fetchProgress();
       return true;
     } catch (e) {
       console.error('[markComplete] network error:', e);
-      setSaveError(locale === 'uz' ? 'Tarmoq xatosi. Internet aloqasini tekshiring.' : locale === 'ru' ? 'Ошибка сети.' : 'Network error. Check your connection.');
+      setSaveError(
+        locale === 'uz' ? 'Tarmoq xatosi. Internet aloqasini tekshiring.'
+        : locale === 'ru' ? 'Ошибка сети. Проверьте подключение.'
+        : 'Network error. Check your connection.'
+      );
       setMarking(false);
       return false;
     }

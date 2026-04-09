@@ -1,10 +1,8 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getToken } from 'next-auth/jwt';
 import { getDb } from '@/lib/db';
 
-/** Ensure the progress table exists before any query */
 async function ensureTable() {
   const sql = getDb();
   await sql`
@@ -24,21 +22,20 @@ async function ensureTable() {
   `;
 }
 
+const isUuid = (v: unknown) =>
+  typeof v === 'string' &&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized — not logged in' }, { status: 401 });
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
-
-    const userId = (session.user as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json({ error: 'No user id in session token' }, { status: 401 });
-    }
-    // Admin user id is not a UUID — skip progress tracking for admin
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
-    if (!isUuid) {
-      return NextResponse.json({ success: true, skipped: 'admin' });
+    const userId = token.id as string | undefined;
+    if (!userId || !isUuid(userId)) {
+      // admin or invalid id — skip silently
+      return NextResponse.json({ success: true, skipped: true });
     }
 
     const body = await req.json();
@@ -48,8 +45,6 @@ export async function POST(req: NextRequest) {
     }
 
     const sql = getDb();
-
-    // Auto-create table if it doesn't exist
     await ensureTable();
 
     await sql`
@@ -61,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('[POST /api/progress] error:', err);
+    console.error('[POST /api/progress]', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }

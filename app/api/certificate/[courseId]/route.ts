@@ -1,8 +1,11 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getToken } from 'next-auth/jwt';
 import { getDb } from '@/lib/db';
+
+const isUuid = (v: unknown) =>
+  typeof v === 'string' &&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 
 function genCertNumber() {
   return `OA-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -40,23 +43,20 @@ function nestCourseRow(row: Record<string, unknown>) {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { courseId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) return NextResponse.json({ certificate: null });
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) return NextResponse.json({ certificate: null });
 
-    const userId = (session.user as { id?: string }).id;
-    if (!userId) return NextResponse.json({ certificate: null });
-    // Admin id is not a UUID — no certificate for admin
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
-    if (!isUuid) return NextResponse.json({ certificate: null });
+    const userId = token.id as string | undefined;
+    if (!userId || !isUuid(userId)) return NextResponse.json({ certificate: null });
 
     const sql = getDb();
     await ensureTables();
 
-    // Return existing certificate if already issued
+    // Return existing certificate
     const existing = await sql`
       SELECT cert.*, c.title_uz, c.title_ru, c.title_en
       FROM certificates cert
@@ -65,23 +65,13 @@ export async function GET(
       LIMIT 1
     `;
     if (existing.length > 0) {
-      return NextResponse.json({
-        certificate: nestCourseRow(existing[0] as Record<string, unknown>),
-      });
+      return NextResponse.json({ certificate: nestCourseRow(existing[0] as Record<string, unknown>) });
     }
 
-    // Check if all published lessons are completed
+    // Check progress
     const [completed, total] = await Promise.all([
-      sql`
-        SELECT COUNT(*) AS count
-        FROM user_lesson_progress
-        WHERE user_id = ${userId} AND course_id = ${params.courseId}
-      `,
-      sql`
-        SELECT COUNT(*) AS count
-        FROM lessons
-        WHERE course_id = ${params.courseId} AND is_published = true
-      `,
+      sql`SELECT COUNT(*) AS count FROM user_lesson_progress WHERE user_id = ${userId} AND course_id = ${params.courseId}`,
+      sql`SELECT COUNT(*) AS count FROM lessons WHERE course_id = ${params.courseId} AND is_published = true`,
     ]);
 
     const completedCount = Number(completed[0]?.count ?? 0);
@@ -94,28 +84,23 @@ export async function GET(
       });
     }
 
-    // All lessons done — issue certificate
-    const fullName = session.user.name || session.user.email?.split('@')[0] || 'Student';
+    // Issue certificate
+    const fullName = (token.name as string) || (token.email as string)?.split('@')[0] || 'Student';
     const cert = await sql`
       INSERT INTO certificates (user_id, course_id, certificate_number, full_name)
       VALUES (${userId}, ${params.courseId}, ${genCertNumber()}, ${fullName})
       ON CONFLICT (user_id, course_id) DO UPDATE SET issued_at = certificates.issued_at
       RETURNING *
     `;
-
     const certWithCourse = await sql`
       SELECT cert.*, c.title_uz, c.title_ru, c.title_en
       FROM certificates cert
       JOIN courses c ON cert.course_id = c.id
       WHERE cert.id = ${cert[0].id}
     `;
-
-    return NextResponse.json({
-      certificate: nestCourseRow(certWithCourse[0] as Record<string, unknown>),
-      newly_issued: true,
-    });
+    return NextResponse.json({ certificate: nestCourseRow(certWithCourse[0] as Record<string, unknown>), newly_issued: true });
   } catch (err) {
-    console.error('[GET /api/certificate/:courseId] error:', err);
+    console.error('[GET /api/certificate/:courseId]', err);
     return NextResponse.json({ certificate: null, error: String(err) });
   }
 }

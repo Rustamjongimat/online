@@ -1,8 +1,13 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getToken } from 'next-auth/jwt';
 import { getDb } from '@/lib/db';
+
+const empty = { completedIds: [], percent: 0, totalLessons: 0, completedCount: 0 };
+
+const isUuid = (v: unknown) =>
+  typeof v === 'string' &&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 
 async function ensureTable() {
   const sql = getDb();
@@ -20,20 +25,15 @@ async function ensureTable() {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { courseId: string } }
 ) {
-  const empty = { completedIds: [], percent: 0, totalLessons: 0, completedCount: 0 };
-
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) return NextResponse.json(empty);
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) return NextResponse.json(empty);
 
-    const userId = (session.user as { id?: string }).id;
-    if (!userId) return NextResponse.json(empty);
-    // Admin id is not a UUID — return empty progress
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
-    if (!isUuid) return NextResponse.json(empty);
+    const userId = token.id as string | undefined;
+    if (!userId || !isUuid(userId)) return NextResponse.json(empty);
 
     const sql = getDb();
     await ensureTable();
@@ -56,15 +56,9 @@ export async function GET(
     const completedCount = completedIds.length;
     const percent = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
-    return NextResponse.json({
-      completedIds,
-      completedLessons: progress,
-      totalLessons,
-      completedCount,
-      percent,
-    });
+    return NextResponse.json({ completedIds, completedLessons: progress, totalLessons, completedCount, percent });
   } catch (err) {
-    console.error('[GET /api/progress/:courseId] error:', err);
-    return NextResponse.json({ completedIds: [], percent: 0, totalLessons: 0, completedCount: 0 });
+    console.error('[GET /api/progress/:courseId]', err);
+    return NextResponse.json(empty);
   }
 }
