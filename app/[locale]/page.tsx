@@ -22,7 +22,7 @@ export default async function HomePage({ params: { locale } }: { params: { local
   const sql = getDb();
 
   const [coursesRows, announcementsRows, pricingRows, studentsRow] = await Promise.all([
-    sql`SELECT * FROM courses WHERE is_published=true ORDER BY created_at DESC LIMIT 6`,
+    sql`SELECT * FROM courses WHERE is_published=true ORDER BY created_at DESC LIMIT 8`,
     sql`SELECT * FROM announcements WHERE is_published=true ORDER BY created_at DESC LIMIT 3`,
     sql`SELECT * FROM pricing_plans WHERE is_active=true ORDER BY price`,
     sql`SELECT COUNT(*) FROM students`,
@@ -39,7 +39,7 @@ export default async function HomePage({ params: { locale } }: { params: { local
   const localizedPlans = pricingPlans.map((p) => localizePricingPlan(p, loc));
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-white">
       <Header />
       <Toaster />
 
@@ -47,33 +47,31 @@ export default async function HomePage({ params: { locale } }: { params: { local
       <HeroSection />
 
       {/* Stats */}
-      <StatsBar coursesCount={courses.length || 0} studentsCount={studentsCount} />
+      <div className="border-b border-gray-200">
+        <StatsBar coursesCount={courses.length || 0} studentsCount={studentsCount} />
+      </div>
 
       {/* Featured Courses */}
-      <section className="py-20 bg-white">
+      <section className="py-20 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
             <div>
-              <div className="flex items-center gap-2 text-amber-500 mb-2">
-                <BookOpen className="w-5 h-5" />
-                <span className="text-sm font-semibold uppercase tracking-wide">Courses</span>
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A]">{t('title')}</h2>
-              <p className="text-slate-500 mt-2">{t('subtitle')}</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-secondary mb-3">{t('title')}</h2>
+              <p className="text-gray-600 text-lg">{t('subtitle')}</p>
             </div>
             <a
               href={`/${locale}/courses`}
-              className="hidden sm:flex items-center gap-1.5 text-amber-500 hover:text-amber-600 font-semibold text-sm transition-colors"
+              className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-bold text-base transition-colors group"
             >
               {t('view_all')}
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </a>
           </div>
 
           {localizedCourses.length === 0 ? (
-            <p className="text-center text-slate-400 py-12">{t('no_courses')}</p>
+            <p className="text-center text-gray-500 py-12 text-lg">{t('no_courses')}</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {localizedCourses.map((course) => (
                 <CourseCard
                   key={course.id}
@@ -85,43 +83,30 @@ export default async function HomePage({ params: { locale } }: { params: { local
               ))}
             </div>
           )}
-
-          <div className="sm:hidden mt-8 text-center">
-            <a
-              href={`/${locale}/courses`}
-              className="inline-flex items-center gap-1.5 text-amber-500 hover:text-amber-600 font-semibold"
-            >
-              {t('view_all')} <ArrowRight className="w-4 h-4" />
-            </a>
-          </div>
         </div>
       </section>
 
       {/* Announcements */}
-      <section className="py-20 bg-slate-50">
+      <section className="py-20 lg:py-24 bg-gray-50 border-y border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
             <div>
-              <div className="flex items-center gap-2 text-amber-500 mb-2">
-                <Bell className="w-5 h-5" />
-                <span className="text-sm font-semibold uppercase tracking-wide">News</span>
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A]">{tAnn('title')}</h2>
-              <p className="text-slate-500 mt-2">{tAnn('subtitle')}</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-secondary mb-3">{tAnn('title')}</h2>
+              <p className="text-gray-600 text-lg">{tAnn('subtitle')}</p>
             </div>
             <a
               href={`/${locale}/announcements`}
-              className="hidden sm:flex items-center gap-1.5 text-amber-500 hover:text-amber-600 font-semibold text-sm"
+              className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-bold text-base transition-colors group"
             >
               {tAnn('view_all')}
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </a>
           </div>
 
           {localizedAnnouncements.length === 0 ? (
-            <p className="text-center text-slate-400 py-12">{tAnn('no_announcements')}</p>
+            <p className="text-center text-gray-500 py-12 text-lg">{tAnn('no_announcements')}</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {localizedAnnouncements.map((ann) => (
                 <AnnouncementCard
                   key={ann.id}
@@ -137,17 +122,13 @@ export default async function HomePage({ params: { locale } }: { params: { local
 
       {/* Pricing */}
       {localizedPlans.length > 0 && (
-        <section className="py-20 bg-white">
+        <section className="py-20 lg:py-24 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <div className="flex items-center justify-center gap-2 text-amber-500 mb-2">
-                <Tag className="w-5 h-5" />
-                <span className="text-sm font-semibold uppercase tracking-wide">Pricing</span>
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A]">
+            <div className="text-center mb-16 max-w-3xl mx-auto">
+              <h2 className="text-3xl md:text-4xl font-bold text-secondary mb-4">
                 {tPricing('title')}
               </h2>
-              <p className="text-slate-500 mt-2">{tPricing('subtitle')}</p>
+              <p className="text-gray-600 text-lg">{tPricing('subtitle')}</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
               {localizedPlans.map((plan) => (
@@ -166,7 +147,9 @@ export default async function HomePage({ params: { locale } }: { params: { local
       )}
 
       {/* Testimonials */}
-      <TestimonialsSection />
+      <div className="bg-gray-50 border-t border-gray-200">
+        <TestimonialsSection />
+      </div>
 
       <Footer />
     </div>

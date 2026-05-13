@@ -2,9 +2,13 @@
   "nav": {
     "home": "Bosh sahifa",
     "courses": "Kurslar",
+    "learn": "O'rganish",
+    "search": "Qidirish",
     "announcements": "E'lonlar",
     "pricing": "Narxlar",
-    "login": "Admin kirish"
+    "login": "Kirish",
+    "register": "Ro'yxatdan o'tish",
+    "admin_login": "Admin kirish"
   },
   "hero": {
     "title": "Cheksiz o'rganing",

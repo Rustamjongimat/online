@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter, usePathname } from 'next/navigation';
-import { Menu, X, GraduationCap, User, LogOut, LayoutDashboard, ChevronDown } from 'lucide-react';
+import { Menu, X, User, LogOut, LayoutDashboard, ChevronDown, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -22,14 +22,7 @@ export default function Header() {
   const pathname = usePathname();
   const { user, loading, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
 
   // Close user menu on outside click
   useEffect(() => {
@@ -42,7 +35,6 @@ export default function Header() {
   }, []);
 
   const navLinks = [
-    { href: `/${locale}`, label: t('home') },
     { href: `/${locale}/courses`, label: t('courses') },
     { href: `/${locale}/announcements`, label: t('announcements') },
     { href: `/${locale}/pricing`, label: t('pricing') },
@@ -67,41 +59,55 @@ export default function Header() {
   const displayName = user?.name || user?.email?.split('@')[0] || 'User';
 
   return (
-    <header
-      className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        scrolled ? 'bg-[#0F172A]/95 backdrop-blur-md shadow-lg' : 'bg-[#0F172A]'
-      )}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <a href={`/${locale}`} className="flex items-center gap-2 text-white font-bold text-xl">
-            <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-white" />
+    <header className="w-full h-[76px] pointer-events-auto bg-white border-b border-gray-200">
+      <div className="hidden md:flex flex-col w-full">
+        <div className="relative h-[76px] flex justify-between items-center">
+          
+          <div className="flex items-center gap-6 flex-1 min-w-0 pl-2 sm:pl-4">
+            {/* Logo */}
+            <a href={`/${locale}`} className="min-w-12 flex-shrink-0 flex items-center text-[28px] font-black italic tracking-tighter text-primary">
+              online<span className="font-semibold text-secondary">Academy</span>
+            </a>
+
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              {/* Learn Button */}
+              <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-center font-medium transition-colors bg-white text-primary hover:bg-primary/10 border-2 border-primary lg:h-10 px-4 text-base h-10 ml-1 flex-shrink-0">
+                {t('learn')}
+                <ChevronDown className="w-4 h-4 ml-2 font-bold" />
+              </button>
+
+              {/* Search Bar */}
+              <div className="flex-1 min-w-0 max-w-full relative min-h-12 flex items-center hidden lg:flex ml-4">
+                <div className="relative w-full max-w-md">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"
+                    placeholder={t('search')}
+                  />
+                </div>
+              </div>
             </div>
-            <span>
-              Online<span className="text-amber-400">Academy</span>
-            </span>
-          </a>
+          </div>
 
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-6">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium"
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
+          <div className="flex items-center flex-shrink-0 pr-2 sm:pr-4">
+            {/* Nav Links */}
+            <nav className="hidden md:flex items-center gap-6 mr-6">
+              {navLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="text-secondary hover:text-primary transition-colors text-sm font-medium"
+                >
+                  {link.label}
+                </a>
+              ))}
+            </nav>
 
-          {/* Right side */}
-          <div className="hidden md:flex items-center gap-3">
             {/* Language switcher */}
-            <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-1">
+            <div className="hidden lg:flex items-center gap-1 bg-gray-100 rounded-lg p-1 mr-4">
               {LOCALES.map((loc) => (
                 <button
                   key={loc.code}
@@ -109,8 +115,8 @@ export default function Header() {
                   className={cn(
                     'px-2.5 py-1 rounded-md text-xs font-semibold transition-all',
                     locale === loc.code
-                      ? 'bg-amber-500 text-white'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-primary text-white'
+                      : 'text-gray-500 hover:text-secondary'
                   )}
                 >
                   {loc.label}
@@ -125,22 +131,22 @@ export default function Header() {
                   <div className="relative" data-user-menu>
                     <button
                       onClick={() => setUserMenuOpen(!userMenuOpen)}
-                      className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                      className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-secondary px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
                     >
-                      <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                      <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs font-bold text-white">
                         {displayName.charAt(0).toUpperCase()}
                       </div>
                       <span className="max-w-[120px] truncate">{displayName}</span>
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                      <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
                     </button>
                     {userMenuOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50">
+                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
                         <a
                           href={`/${locale}/dashboard`}
-                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                           onClick={() => setUserMenuOpen(false)}
                         >
-                          <LayoutDashboard className="w-4 h-4 text-amber-500" />
+                          <LayoutDashboard className="w-4 h-4 text-primary" />
                           {tAuth('dashboard')}
                         </a>
                         <button
@@ -155,10 +161,10 @@ export default function Header() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <Button asChild variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-slate-700">
+                    <Button asChild variant="ghost" size="sm" className="text-secondary hover:text-primary hover:bg-primary/5 font-medium">
                       <a href={`/${locale}/login`}>{tAuth('login_btn')}</a>
                     </Button>
-                    <Button asChild variant="gold" size="sm">
+                    <Button asChild size="sm" className="bg-primary hover:bg-primary/90 text-white font-medium">
                       <a href={`/${locale}/register`}>{tAuth('register_btn')}</a>
                     </Button>
                   </div>
@@ -166,71 +172,81 @@ export default function Header() {
               </>
             )}
           </div>
-
-          {/* Mobile menu button */}
-          <button
-            className="md:hidden text-white p-2"
-            onClick={() => setIsOpen(!isOpen)}
-            aria-label="Toggle menu"
-          >
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
         </div>
+      </div>
 
-        {/* Mobile menu */}
-        {isOpen && (
-          <div className="md:hidden pb-4 border-t border-slate-700 mt-2 pt-4">
-            <nav className="flex flex-col gap-3">
-              {navLinks.map((link) => (
+      {/* Mobile Header */}
+      <div className="flex md:hidden relative h-[76px] justify-between items-center border-b border-gray-200 px-4">
+        <button
+          className="hover:bg-primary/10 p-2 rounded-full text-secondary"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-label="Toggle menu"
+        >
+          {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+        
+        <a href={`/${locale}`} className="flex items-center text-2xl font-black italic tracking-tighter text-primary">
+          online<span className="font-semibold text-secondary">Academy</span>
+        </a>
+
+        <button className="hover:bg-primary/10 p-2 rounded-full text-secondary" aria-label="Search courses">
+          <Search className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Mobile menu */}
+      {isOpen && (
+        <div className="md:hidden bg-white border-b border-gray-200 absolute w-full z-50">
+          <nav className="flex flex-col gap-0">
+            {navLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="text-secondary hover:text-primary hover:bg-gray-50 transition-colors text-base font-medium px-4 py-4 border-b border-gray-100"
+                onClick={() => setIsOpen(false)}
+              >
+                {link.label}
+              </a>
+            ))}
+            {!loading && user && (
+              <>
                 <a
-                  key={link.href}
-                  href={link.href}
-                  className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium px-2 py-1"
+                  href={`/${locale}/dashboard`}
+                  className="flex items-center gap-2 text-secondary hover:text-primary hover:bg-gray-50 transition-colors text-base font-medium px-4 py-4 border-b border-gray-100"
                   onClick={() => setIsOpen(false)}
                 >
-                  {link.label}
+                  <LayoutDashboard className="w-5 h-5" />
+                  {tAuth('dashboard')}
                 </a>
-              ))}
-              {!loading && user && (
-                <>
-                  <a
-                    href={`/${locale}/dashboard`}
-                    className="flex items-center gap-2 text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium px-2 py-1"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <LayoutDashboard className="w-4 h-4" />
-                    {tAuth('dashboard')}
-                  </a>
-                  <button
-                    onClick={handleSignOut}
-                    className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors text-sm font-medium px-2 py-1 text-left"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    {tAuth('logout')}
-                  </button>
-                </>
-              )}
-              {!loading && !user && (
-                <div className="flex gap-2 px-2 pt-1">
-                  <a
-                    href={`/${locale}/login`}
-                    className="flex-1 text-center py-2 rounded-lg border border-slate-600 text-slate-300 hover:text-white text-sm font-medium transition-colors"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    {tAuth('login_btn')}
-                  </a>
-                  <a
-                    href={`/${locale}/register`}
-                    className="flex-1 text-center py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold transition-colors"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    {tAuth('register_btn')}
-                  </a>
-                </div>
-              )}
-            </nav>
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center gap-2 text-red-600 hover:bg-red-50 transition-colors text-base font-medium px-4 py-4 border-b border-gray-100 text-left"
+                >
+                  <LogOut className="w-5 h-5" />
+                  {tAuth('logout')}
+                </button>
+              </>
+            )}
+            {!loading && !user && (
+              <div className="flex flex-col gap-2 p-4">
+                <a
+                  href={`/${locale}/login`}
+                  className="w-full text-center py-3 rounded-lg border border-secondary text-secondary hover:bg-gray-50 text-base font-medium transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {tAuth('login_btn')}
+                </a>
+                <a
+                  href={`/${locale}/register`}
+                  className="w-full text-center py-3 rounded-lg bg-primary hover:bg-primary/90 text-white text-base font-bold transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {tAuth('register_btn')}
+                </a>
+              </div>
+            )}
             {/* Mobile language switcher */}
-            <div className="flex items-center gap-2 mt-4 px-2">
+            <div className="flex items-center gap-2 p-4 bg-gray-50">
               {LOCALES.map((loc) => (
                 <button
                   key={loc.code}
@@ -239,19 +255,19 @@ export default function Header() {
                     setIsOpen(false);
                   }}
                   className={cn(
-                    'px-3 py-1.5 rounded-md text-xs font-semibold transition-all',
+                    'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1',
                     locale === loc.code
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-slate-800 text-slate-400 hover:text-white'
+                      ? 'bg-primary text-white'
+                      : 'bg-white border border-gray-200 text-gray-600 hover:text-secondary'
                   )}
                 >
                   {loc.label}
                 </button>
               ))}
             </div>
-          </div>
-        )}
-      </div>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
