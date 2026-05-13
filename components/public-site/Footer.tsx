@@ -1,3 +1,5 @@
+'use client';
+
 import { useTranslations, useLocale } from 'next-intl';
 import { Mail, Youtube, Instagram, Send, Home, BookOpen, Bell, Tag } from 'lucide-react';
 

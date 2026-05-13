@@ -19,7 +19,8 @@
     "languages": "Языков",
     "courses_label": "Экспертных курсов",
     "students_label": "Активных студентов",
-    "languages_label": "Поддерживаемых языков"
+    "languages_label": "Поддерживаемых языков",
+    "satisfaction_label": "Уровень удовлетворенности"
   },
   "featured_courses": {
     "title": "Избранные курсы",

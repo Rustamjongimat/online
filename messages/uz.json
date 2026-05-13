@@ -23,7 +23,8 @@
     "languages": "Til",
     "courses_label": "Ekspert kurslari",
     "students_label": "Faol talabalar",
-    "languages_label": "Qo'llab-quvvatlanadigan tillar"
+    "languages_label": "Qo'llab-quvvatlanadigan tillar",
+    "satisfaction_label": "Mamnunlik darajasi"
   },
   "featured_courses": {
     "title": "Tanlangan kurslar",

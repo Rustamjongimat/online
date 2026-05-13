@@ -19,7 +19,8 @@
     "languages": "Languages",
     "courses_label": "Expert Courses",
     "students_label": "Active Students",
-    "languages_label": "Languages Supported"
+    "languages_label": "Languages Supported",
+    "satisfaction_label": "Satisfaction Rate"
   },
   "featured_courses": {
     "title": "Featured Courses",
