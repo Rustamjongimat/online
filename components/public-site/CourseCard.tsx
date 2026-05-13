@@ -1,4 +1,4 @@
-import { Lock, ArrowRight } from 'lucide-react';
+import { Lock, Star } from 'lucide-react';
 import type { LocalizedCourse } from '@/lib/types';
 import { getYouTubeThumbnail, extractYouTubeId } from '@/lib/youtube';
 
@@ -25,10 +25,10 @@ export default function CourseCard({
   return (
     <a
       href={`/${locale}/courses/${course.id}`}
-      className="group flex flex-col bg-white border border-gray-200 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer h-full"
+      className="group flex flex-col bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer h-full"
     >
       {/* Thumbnail */}
-      <div className="relative aspect-[16/9] bg-gray-100 overflow-hidden shrink-0">
+      <div className="relative aspect-[16/9] bg-gray-100 overflow-hidden shrink-0 border-b border-gray-100">
         <img
           src={thumbnail}
           alt={course.title}
@@ -37,13 +37,13 @@ export default function CourseCard({
         />
 
         {/* Free/Premium badge */}
-        <div className="absolute top-0 right-0 m-3">
+        <div className="absolute top-2 left-2">
           {course.is_free ? (
-            <span className="inline-flex items-center bg-white text-gray-800 text-xs font-bold px-2 py-1 shadow-sm uppercase tracking-wide">
+            <span className="inline-flex items-center bg-white text-gray-800 text-[11px] font-bold px-2 py-0.5 rounded shadow-sm tracking-wide">
               {freeLabel}
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 bg-primary text-white text-xs font-bold px-2 py-1 shadow-sm uppercase tracking-wide">
+            <span className="inline-flex items-center gap-1 bg-[#1e2229] text-white text-[11px] font-bold px-2 py-0.5 rounded shadow-sm tracking-wide">
               <Lock className="w-3 h-3" />
               {premiumLabel}
             </span>
@@ -53,34 +53,35 @@ export default function CourseCard({
 
       {/* Content */}
       <div className="p-4 sm:p-5 flex flex-col flex-1">
-        {/* Category / Partner */}
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        {/* Provider */}
+        <div className="flex items-center mb-2">
+          <span className="text-xs font-semibold text-gray-600">
             OnlineAcademy
           </span>
-          {course.category && (
-            <span className="text-xs text-secondary font-medium">
-              {course.category}
-            </span>
-          )}
         </div>
 
         {/* Title */}
-        <h3 className="font-bold text-secondary text-lg leading-snug mb-3 line-clamp-2 group-hover:text-primary transition-colors duration-200">
+        <h3 className="font-bold text-gray-900 text-base sm:text-lg leading-tight mb-2 line-clamp-2">
           {course.title}
         </h3>
 
-        {/* Description */}
-        <p className="text-sm text-gray-600 line-clamp-2 mb-4 flex-1">
+        {/* Description / Skills */}
+        <p className="text-sm text-gray-600 line-clamp-1 mb-3">
           {course.description}
         </p>
 
-        {/* Footer row */}
-        <div className="pt-4 border-t border-gray-100 mt-auto">
-          <span className="inline-flex items-center gap-1 text-primary text-sm font-semibold group-hover:gap-2 transition-all duration-200">
-            {watchLabel}
-            <ArrowRight className="w-4 h-4" />
-          </span>
+        <div className="mt-auto">
+          {/* Rating (Static for display) */}
+          <div className="flex items-center gap-1 text-sm text-gray-800 mb-2 font-medium">
+            <span>4.8</span>
+            <Star className="w-4 h-4 fill-[#F59E0B] text-[#F59E0B]" />
+            <span className="text-gray-500 font-normal ml-1">(12k sharhlar)</span>
+          </div>
+
+          {/* Type / Category */}
+          <div className="text-xs text-gray-500 font-medium">
+            {course.category || 'Kurs'} · {course.is_free ? 'Boshlang\'ich' : 'Professional'}
+          </div>
         </div>
       </div>
     </a>

@@ -65,28 +65,28 @@ export default function Header() {
           
           <div className="flex items-center gap-6 flex-1 min-w-0 pl-2 sm:pl-4">
             {/* Logo */}
-            <a href={`/${locale}`} className="min-w-12 flex-shrink-0 flex items-center text-[28px] font-black italic tracking-tighter text-primary">
-              online<span className="font-semibold text-secondary">Academy</span>
+            <a href={`/${locale}`} className="min-w-12 flex-shrink-0 flex items-center text-[24px] font-bold tracking-tight text-primary">
+              onlineAcademy
             </a>
 
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              {/* Learn Button */}
-              <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-center font-medium transition-colors bg-white text-primary hover:bg-primary/10 border-2 border-primary lg:h-10 px-4 text-base h-10 ml-1 flex-shrink-0">
+              {/* Explore Button */}
+              <button className="inline-flex items-center justify-center whitespace-nowrap rounded bg-primary text-white hover:bg-primary/90 lg:h-10 px-4 text-base h-10 ml-1 flex-shrink-0 font-semibold shadow-sm transition-colors">
                 {t('learn')}
                 <ChevronDown className="w-4 h-4 ml-2 font-bold" />
               </button>
 
               {/* Search Bar */}
               <div className="flex-1 min-w-0 max-w-full relative min-h-12 flex items-center hidden lg:flex ml-4">
-                <div className="relative w-full max-w-md">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5 text-gray-400" />
-                  </div>
+                <div className="relative w-full max-w-lg flex">
                   <input
                     type="text"
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"
+                    className="block w-full pl-4 pr-3 py-2.5 border border-gray-400 rounded-l-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm font-light"
                     placeholder={t('search')}
                   />
+                  <button className="bg-primary hover:bg-primary/90 text-white p-2.5 rounded-r-md flex items-center justify-center">
+                    <Search className="h-5 w-5" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -161,10 +161,10 @@ export default function Header() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <Button asChild variant="ghost" size="sm" className="text-secondary hover:text-primary hover:bg-primary/5 font-medium">
+                    <Button asChild variant="ghost" size="sm" className="text-primary hover:text-primary/80 hover:bg-transparent font-semibold">
                       <a href={`/${locale}/login`}>{tAuth('login_btn')}</a>
                     </Button>
-                    <Button asChild size="sm" className="bg-primary hover:bg-primary/90 text-white font-medium">
+                    <Button asChild size="sm" className="bg-primary hover:bg-primary/90 text-white font-semibold rounded shadow-sm">
                       <a href={`/${locale}/register`}>{tAuth('register_btn')}</a>
                     </Button>
                   </div>
@@ -185,8 +185,8 @@ export default function Header() {
           {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
         
-        <a href={`/${locale}`} className="flex items-center text-2xl font-black italic tracking-tighter text-primary">
-          online<span className="font-semibold text-secondary">Academy</span>
+        <a href={`/${locale}`} className="flex items-center text-2xl font-bold tracking-tight text-primary">
+          onlineAcademy
         </a>
 
         <button className="hover:bg-primary/10 p-2 rounded-full text-secondary" aria-label="Search courses">

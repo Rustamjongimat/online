@@ -48,50 +48,29 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        navy: {
-          DEFAULT: '#0F172A',
-          50: '#F0F4FF',
-          100: '#E0E9FF',
-          900: '#0F172A',
-        },
-        gold: {
-          DEFAULT: '#F59E0B',
-          400: '#FBBF24',
-          500: '#F59E0B',
-          600: '#D97706',
-        },
+        // Coursera specific colors
+        coursera: {
+          blue: '#0056D2',
+          dark: '#003b8f',
+          light: '#f0f6ff',
+          yellow: '#FFC936',
+          grey: {
+            100: '#f2f5fa',
+            200: '#e8eef7',
+            300: '#c1cad9',
+            400: '#8495b0',
+            500: '#404b61',
+            900: '#1e2229'
+          }
+        }
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
-      keyframes: {
-        'accordion-down': {
-          from: { height: '0' },
-          to: { height: 'var(--radix-accordion-content-height)' },
-        },
-        'accordion-up': {
-          from: { height: 'var(--radix-accordion-content-height)' },
-          to: { height: '0' },
-        },
-        fadeInUp: {
-          from: { opacity: '0', transform: 'translateY(20px)' },
-          to: { opacity: '1', transform: 'translateY(0)' },
-        },
-        shimmer: {
-          '0%': { backgroundPosition: '-200% 0' },
-          '100%': { backgroundPosition: '200% 0' },
-        },
-      },
-      animation: {
-        'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out',
-        'fade-in-up': 'fadeInUp 0.6s ease-out',
-        shimmer: 'shimmer 2s infinite',
-      },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['"Source Sans Pro"', 'Arial', 'sans-serif'],
       },
     },
   },

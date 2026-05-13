@@ -23,7 +23,7 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-secondary text-white pb-12 pt-16">
+    <footer className="bg-[#f2f5fa] text-[#1e2229] pb-12 pt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Main Grid */}
@@ -31,23 +31,23 @@ export default function Footer() {
           
           {/* Brand & Description */}
           <div className="lg:col-span-1">
-            <a href={`/${locale}`} className="inline-block flex-shrink-0 text-[24px] font-black italic tracking-tighter text-white mb-6">
-              online<span className="font-semibold text-gray-300">Academy</span>
+            <a href={`/${locale}`} className="inline-block flex-shrink-0 text-[24px] font-bold tracking-tight text-primary mb-6">
+              onlineAcademy
             </a>
-            <p className="text-sm leading-relaxed text-gray-300 max-w-xs mb-8">
+            <p className="text-sm leading-relaxed text-gray-700 max-w-xs mb-8">
               {t('description')}
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-white font-semibold mb-6">{t('quick_links')}</h3>
+            <h3 className="text-gray-900 font-bold mb-6 text-lg">{t('quick_links')}</h3>
             <ul className="space-y-4">
               {navLinks.map(({ href, label }) => (
                 <li key={href}>
                   <a
                     href={href}
-                    className="text-sm text-gray-300 hover:text-white transition-colors underline-offset-2 hover:underline"
+                    className="text-sm text-gray-700 hover:text-primary transition-colors underline-offset-2 hover:underline"
                   >
                     {label}
                   </a>
@@ -58,15 +58,15 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <h3 className="text-white font-semibold mb-6">{t('contact')}</h3>
-            <ul className="space-y-4 text-sm text-gray-300">
+            <h3 className="text-gray-900 font-bold mb-6 text-lg">{t('contact')}</h3>
+            <ul className="space-y-4 text-sm text-gray-700">
               <li>
-                <a href="mailto:info@onlineacademy.uz" className="hover:text-white transition-colors underline-offset-2 hover:underline">
+                <a href="mailto:info@onlineacademy.uz" className="hover:text-primary transition-colors underline-offset-2 hover:underline">
                   info@onlineacademy.uz
                 </a>
               </li>
               <li>
-                <span className="hover:text-white transition-colors cursor-pointer">
+                <span className="hover:text-primary transition-colors cursor-pointer">
                   @onlineacademy_uz
                 </span>
               </li>
@@ -75,26 +75,26 @@ export default function Footer() {
 
           {/* Connect */}
           <div>
-            <h3 className="text-white font-semibold mb-6">{t('follow_us')}</h3>
+            <h3 className="text-gray-900 font-bold mb-6 text-lg">{t('follow_us')}</h3>
             <div className="flex gap-4">
               {socials.map(({ href, icon: Icon, label }) => (
                 <a
                   key={label}
                   href={href}
                   aria-label={label}
-                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                  className="w-10 h-10 rounded bg-white border border-gray-300 hover:bg-gray-50 flex items-center justify-center transition-colors shadow-sm"
                 >
-                  <Icon className="w-5 h-5 text-white" />
+                  <Icon className="w-5 h-5 text-gray-700" />
                 </a>
               ))}
             </div>
             
-            {/* Language Selector (Simple text link or dropdown) */}
+            {/* Language Selector */}
             <div className="mt-8">
               <label htmlFor="language-select" className="sr-only">Language</label>
               <select 
                 id="language-select"
-                className="bg-secondary border border-gray-600 text-white text-sm rounded focus:ring-primary focus:border-primary block w-full p-2.5 outline-none"
+                className="bg-white border border-gray-300 text-gray-900 text-sm rounded focus:ring-primary focus:border-primary block w-full p-2.5 outline-none shadow-sm"
                 defaultValue={locale}
                 onChange={(e) => {
                   window.location.href = `/${e.target.value}`;
@@ -109,13 +109,13 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 border-t border-gray-700 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-400">
+        <div className="pt-8 border-t border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-500">
           <p>© {new Date().getFullYear()} OnlineAcademy. {t('rights')}</p>
           <div className="flex items-center gap-6">
-            <a href={`/${locale}`} className="hover:text-white transition-colors">
+            <a href={`/${locale}`} className="hover:text-primary hover:underline transition-colors">
               {locale === 'uz' ? "Maxfiylik siyosati" : locale === 'ru' ? "Конфиденциальность" : "Privacy Policy"}
             </a>
-            <a href={`/${locale}`} className="hover:text-white transition-colors">
+            <a href={`/${locale}`} className="hover:text-primary hover:underline transition-colors">
               {locale === 'uz' ? "Xizmat ko'rsatish shartlari" : locale === 'ru' ? "Условия обслуживания" : "Terms of Service"}
             </a>
           </div>
